@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+watchPatterns = ["server/**"]
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+numReplicas = 1
