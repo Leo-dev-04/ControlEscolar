@@ -47,6 +47,12 @@ export default function Tareas() {
       const todosLosAlumnos = response.data.data || response.data || []
       const alumnosDelGrupo = todosLosAlumnos.filter(a => a.grupo_id == grupoSeleccionado)
       setAlumnos(alumnosDelGrupo)
+      // Inicializar todos como "entregaron" por defecto
+      const tareasIniciales = {}
+      alumnosDelGrupo.forEach(alumno => {
+        tareasIniciales[alumno.id] = true
+      })
+      setTareasEntregadas(tareasIniciales)
     } catch (error) {
       console.error('Error al cargar alumnos:', error)
       setAlumnos([])
@@ -82,8 +88,7 @@ export default function Tareas() {
         titulo: nombreTarea,
         descripcion: descripcion || null,
         fecha_asignacion: new Date().toISOString().split('T')[0],
-        fecha_entrega: fechaEntrega,
-        maestro_id: 1
+        fecha_entrega: fechaEntrega
       })
 
       const tareaId = tareaResponse.data?.data?.tarea_id || tareaResponse.data?.tarea_id
@@ -91,7 +96,7 @@ export default function Tareas() {
       // 2. Registrar entregas
       const entregasArray = alumnos.map(alumno => ({
         alumno_id: alumno.id,
-        entregada: tareasEntregadas[alumno.id]
+        entregada: tareasEntregadas[alumno.id] === true
       }))
 
       await tareasService.registrarEntregas({
