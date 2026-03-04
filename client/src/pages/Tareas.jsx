@@ -84,14 +84,22 @@ export default function Tareas() {
     try {
       // 1. Crear la tarea
       const tareaResponse = await tareasService.crear({
-        grupo_id: grupoSeleccionado,
+        grupo_id: parseInt(grupoSeleccionado),
         titulo: nombreTarea,
         descripcion: descripcion || null,
         fecha_asignacion: new Date().toISOString().split('T')[0],
         fecha_entrega: fechaEntrega
       })
 
+      console.log('Respuesta crear tarea:', tareaResponse.data)
       const tareaId = tareaResponse.data?.data?.tarea_id || tareaResponse.data?.tarea_id
+
+      if (!tareaId) {
+        alert('❌ Error: No se pudo obtener el ID de la tarea creada')
+        console.error('tareaResponse completa:', JSON.stringify(tareaResponse.data))
+        setGuardando(false)
+        return
+      }
 
       // 2. Registrar entregas
       const entregasArray = alumnos.map(alumno => ({
@@ -117,7 +125,9 @@ export default function Tareas() {
       setTareasEntregadas(tareasIniciales)
     } catch (error) {
       console.error('Error al guardar:', error)
-      alert('❌ Error al guardar: ' + (error.response?.data?.error || error.message))
+      const mensaje = error.response?.data?.message || error.response?.data?.error || error.message
+      alert('❌ Error al guardar: ' + mensaje)
+
     } finally {
       setGuardando(false)
     }

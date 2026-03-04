@@ -52,13 +52,12 @@ const tareasController = {
         // Insertar nuevas entregas
         for (const entrega of entregas) {
           await connection.query(
-            `INSERT INTO entregas_tareas (tarea_id, alumno_id, entregada, fecha_entrega, observaciones)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO entregas_tareas (tarea_id, alumno_id, entregada, observaciones)
+             VALUES (?, ?, ?, ?)`,
             [
               tarea_id,
               entrega.alumno_id,
-              entrega.entregada,
-              entrega.entregada ? new Date() : null,
+              entrega.entregada ? 1 : 0,
               entrega.observaciones || null
             ]
           );
