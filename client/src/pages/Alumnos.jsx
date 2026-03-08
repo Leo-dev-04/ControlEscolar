@@ -62,7 +62,7 @@ export default function Alumnos() {
   function emptyForm() {
     return {
       nombre: '', apellidos: '', grupo_id: '', fecha_nacimiento: '',
-      parent_nombre: '', parent_email: '', parent_telefono: ''
+      parent_nombre: '', parent_email: '', parent_telefono: '', curp: ''
     }
   }
 
@@ -143,6 +143,8 @@ export default function Alumnos() {
     if (!form.parent_nombre.trim()) e.parent_nombre = 'Obligatorio'
     if (!form.parent_email.trim()) e.parent_email = 'Obligatorio'
     if (!form.parent_telefono.trim()) e.parent_telefono = 'Obligatorio'
+    else if (form.parent_telefono.replace(/\D/g, '').length !== 10) e.parent_telefono = 'Debe tener exactamente 10 dígitos'
+    if (form.curp && !/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i.test(form.curp)) e.curp = 'CURP inválida'
     setErrores(e)
     return Object.keys(e).length === 0
   }
@@ -183,7 +185,7 @@ export default function Alumnos() {
       nombre: alumno.nombre, apellidos: alumno.apellidos, grupo_id: alumno.grupo_id,
       fecha_nacimiento: alumno.fecha_nacimiento?.split('T')[0] || '',
       parent_email: alumno.parent_email || '', parent_nombre: alumno.parent_nombre || '',
-      parent_telefono: alumno.parent_telefono || '',
+      parent_telefono: alumno.parent_telefono || '', curp: alumno.curp || '',
     } : emptyForm())
     setErrores({})
     setShowModal(true)
@@ -558,12 +560,17 @@ export default function Alumnos() {
                         onChange={e => handleChange('parent_email', e.target.value)}
                         placeholder="correo@ejemplo.com" error={errores.parent_email} />
                     </Campo>
-                    <Campo label="Teléfono *" error={errores.parent_telefono}>
+                    <Campo label="Teléfono (10 dígitos) *" error={errores.parent_telefono}>
                       <Input type="tel" value={form.parent_telefono}
-                        onChange={e => handleChange('parent_telefono', e.target.value)}
-                        placeholder="1234567890" error={errores.parent_telefono} />
+                        onChange={e => handleChange('parent_telefono', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="1234567890" maxLength={10} error={errores.parent_telefono} />
                     </Campo>
                   </div>
+                  <Campo label="CURP (opcional)" error={errores.curp}>
+                    <Input value={form.curp}
+                      onChange={e => handleChange('curp', e.target.value.toUpperCase().slice(0, 18))}
+                      placeholder="XXXX000000XXXXXXX0" maxLength={18} error={errores.curp} />
+                  </Campo>
                 </div>
               </div>
 

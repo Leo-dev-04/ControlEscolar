@@ -90,13 +90,13 @@ class Alumno {
    */
   static async create(alumno) {
     try {
-      const { nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono } = alumno;
+      const { nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, curp } = alumno;
       const qr_token = generarQrToken();
 
       const [result] = await db.query(
-        `INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, qr_token)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, qr_token]
+        `INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, curp, qr_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, curp || null, qr_token]
       );
 
       logger.info(`Alumno creado: ${nombre} ${apellidos} (ID: ${result.insertId})`);
@@ -112,14 +112,14 @@ class Alumno {
    */
   static async update(id, alumno) {
     try {
-      const { nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono } = alumno;
+      const { nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, curp } = alumno;
 
       const [result] = await db.query(
         `UPDATE alumnos 
          SET nombre = ?, apellidos = ?, fecha_nacimiento = ?, grupo_id = ?, 
-             parent_email = ?, parent_nombre = ?, parent_telefono = ?
+             parent_email = ?, parent_nombre = ?, parent_telefono = ?, curp = ?
          WHERE id = ?`,
-        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, id]
+        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, curp || null, id]
       );
 
       logger.info(`Alumno actualizado: ID ${id}`);
