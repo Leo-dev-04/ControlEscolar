@@ -65,11 +65,11 @@ router.delete(
     alumnosController.delete
 );
 
-// PUT /api/alumnos/:id/regenerar-qr - Regenerar QR token (director y maestro)
+// PUT /api/alumnos/:id/regenerar-qr - Regenerar QR token (solo director)
 router.put(
     '/:id/regenerar-qr',
     verificarToken,
-    verificarRol('director', 'maestro'),
+    verificarRol('director'),
     alumnosController.regenerateQr
 );
 

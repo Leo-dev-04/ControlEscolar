@@ -641,11 +641,13 @@ export default function Alumnos() {
                            px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
                 📱 WhatsApp
               </button>
-              <button onClick={handleRegenerarQr} disabled={regenerando}
-                className="flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700
-                           px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
-                {regenerando ? '⏳ ...' : '🔄 Regenerar'}
-              </button>
+              {isDirector && (
+                <button onClick={handleRegenerarQr} disabled={regenerando}
+                  className="flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700
+                             px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
+                  {regenerando ? '⏳ ...' : '🔄 Regenerar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
