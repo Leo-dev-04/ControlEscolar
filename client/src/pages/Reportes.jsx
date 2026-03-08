@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { reportesService } from '../services/reportes.service'
 import { gruposService } from '../services/grupos.service'
-import ReporteParaPadres from '../components/ReporteParaPadres'
 import { useAuth } from '../context/AuthContext'
 
 export default function Reportes() {
@@ -11,7 +10,6 @@ export default function Reportes() {
   const [reportes, setReportes] = useState([])
   const [loading, setLoading] = useState(true)
   const [generando, setGenerando] = useState(false)
-  const [reporteParaEnviar, setReporteParaEnviar] = useState(null)
 
   useEffect(() => {
     cargarGrupos()
@@ -49,24 +47,19 @@ export default function Reportes() {
       return
     }
 
-    if (!confirm('¿Generar y enviar reportes semanales para todo el grupo? Esto enviará emails a todos los padres.')) {
+    if (!confirm('¿Generar reportes semanales para todo el grupo? Los datos quedarán disponibles para consulta de los padres vía QR.')) {
       return
     }
 
     setGenerando(true)
     try {
       const response = await reportesService.generar({ grupo_id: grupoSeleccionado })
-
-      // ApiResponse.success envuelve en { data: {...} }, Axios añade otro nivel
       const resultado = response.data.data || response.data || {}
 
       alert(`✅ Reportes generados:\n\n` +
-        `📊 Total: ${resultado.reportesGenerados || 0}\n` +
-        `✅ Enviados: ${resultado.emailsEnviados || 0}\n` +
-        `❌ Errores: ${resultado.emailsFallidos || 0}\n\n` +
-        `Los reportes han sido enviados a los padres por email.`)
+        `📊 Total: ${resultado.reportesGenerados || 0}\n\n` +
+        `Los padres pueden consultar los reportes escaneando el código QR de cada alumno.`)
 
-      // Recargar reportes
       cargarReportes()
     } catch (error) {
       console.error('Error al generar reportes:', error)
@@ -109,7 +102,7 @@ export default function Reportes() {
           <h2 className="text-xl font-bold text-gray-800 mb-3">✨ Generar Reportes de la Semana</h2>
           <p className="text-gray-700 mb-4">
             Genera automáticamente los reportes semanales consolidando asistencias, tareas y conducta.
-            Los reportes se enviarán por email a los padres.
+            Los padres podrán consultar los reportes escaneando el código QR de cada alumno.
           </p>
 
           <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -136,7 +129,7 @@ export default function Reportes() {
                 : 'bg-green-600 hover:bg-green-700 active:scale-95'
                 }`}
             >
-              {generando ? '⏳ Generando...' : '📤 Generar y Enviar Reportes'}
+              {generando ? '⏳ Generando...' : '📊 Generar Reportes'}
             </button>
           </div>
         </div>
@@ -162,9 +155,7 @@ export default function Reportes() {
             const pctAsistencia = totalDias > 0 ? Math.round((reporte.total_asistencias / totalDias) * 100) : 0
             const pctTareas = reporte.total_tareas > 0 ? Math.round((reporte.tareas_entregadas / reporte.total_tareas) * 100) : 0
             const conductaInfo = getConductaResumen(reporte)
-            const enviado = reporte.enviado === true || reporte.enviado === 1
 
-            // Color dinámico asistencia
             const colorAsist = pctAsistencia >= 90 ? 'bg-emerald-500' : pctAsistencia >= 70 ? 'bg-amber-400' : 'bg-red-400'
             const colorTarea = pctTareas >= 80 ? 'bg-violet-500' : pctTareas >= 50 ? 'bg-amber-400' : 'bg-red-400'
 
@@ -172,7 +163,7 @@ export default function Reportes() {
               <div key={reporte.id}
                 className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
 
-                {/* Encabezado de la tarjeta */}
+                {/* Encabezado */}
                 <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -194,7 +185,6 @@ export default function Reportes() {
 
                 {/* Cuerpo */}
                 <div className="px-5 py-4 flex-1 space-y-4">
-
                   {/* Asistencia */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
@@ -239,21 +229,11 @@ export default function Reportes() {
                   </div>
                 </div>
 
-                {/* Footer de la tarjeta */}
-                <div className={`px-5 py-3 border-t flex items-center justify-between ${enviado ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}>
-                  {enviado ? (
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      Enviado el {new Date(reporte.fecha_envio).toLocaleDateString('es-MX')}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
-                      <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
-                      Pendiente de envío
-                    </span>
-                  )}
+                {/* Footer */}
+                <div className="px-5 py-3 border-t flex items-center justify-between bg-gray-50 border-gray-100">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    📊 Disponible para consulta QR
+                  </span>
                   {usuario?.rol === 'director' && (
                     <button onClick={() => handleDelete(reporte.id)}
                       className="text-red-400 hover:text-red-600 text-xs font-medium transition">
@@ -265,18 +245,6 @@ export default function Reportes() {
             )
           })}
         </div>
-      )}
-
-
-
-
-      {/* Modal para enviar reporte a padres */}
-      {reporteParaEnviar && (
-        <ReporteParaPadres
-          reporte={reporteParaEnviar.reporte}
-          alumno={reporteParaEnviar.alumno}
-          onClose={() => setReporteParaEnviar(null)}
-        />
       )}
     </div>
   )

@@ -1,6 +1,14 @@
 const db = require('../config/database');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { PAGINATION } = require('../config/constants');
+
+/**
+ * Genera un token QR único de 64 caracteres hexadecimales
+ */
+function generarQrToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 class Alumno {
   /**
@@ -8,18 +16,15 @@ class Alumno {
    */
   static async findAll(page = 1, limit = PAGINATION.DEFAULT_LIMIT) {
     try {
-      // Validar parámetros
       page = parseInt(page) || 1;
       limit = Math.min(parseInt(limit) || PAGINATION.DEFAULT_LIMIT, PAGINATION.MAX_LIMIT);
       const offset = (page - 1) * limit;
 
-      // Obtener total de registros
       const [countResult] = await db.query(
         'SELECT COUNT(*) as total FROM alumnos WHERE activo = TRUE'
       );
       const total = countResult[0].total;
 
-      // Obtener datos paginados
       const [rows] = await db.query(`
         SELECT 
           a.id,
@@ -29,6 +34,7 @@ class Alumno {
           a.parent_email,
           a.parent_nombre,
           a.parent_telefono,
+          a.qr_token,
           g.id as grupo_id,
           g.nombre as grupo_nombre,
           g.grado,
@@ -40,7 +46,6 @@ class Alumno {
         ORDER BY g.escuela, g.grado, g.seccion, a.apellidos, a.nombre
         LIMIT ? OFFSET ?
       `, [limit, offset]);
-
 
       return {
         data: rows,
@@ -81,16 +86,17 @@ class Alumno {
   }
 
   /**
-   * Crear nuevo alumno
+   * Crear nuevo alumno (genera qr_token automáticamente)
    */
   static async create(alumno) {
     try {
       const { nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono } = alumno;
+      const qr_token = generarQrToken();
 
       const [result] = await db.query(
-        `INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono]
+        `INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, qr_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, parent_telefono, qr_token]
       );
 
       logger.info(`Alumno creado: ${nombre} ${apellidos} (ID: ${result.insertId})`);
@@ -148,14 +154,12 @@ class Alumno {
       limit = Math.min(parseInt(limit) || PAGINATION.DEFAULT_LIMIT, PAGINATION.MAX_LIMIT);
       const offset = (page - 1) * limit;
 
-      // Obtener total
       const [countResult] = await db.query(
         'SELECT COUNT(*) as total FROM alumnos WHERE grupo_id = ? AND activo = TRUE',
         [grupoId]
       );
       const total = countResult[0].total;
 
-      // Obtener datos
       const [rows] = await db.query(`
         SELECT a.*, g.nombre as grupo_nombre, g.grado, g.seccion as grupo
         FROM alumnos a
@@ -179,7 +183,29 @@ class Alumno {
       throw error;
     }
   }
+
+  /**
+   * Regenerar token QR de un alumno
+   */
+  static async regenerateQrToken(id) {
+    try {
+      const newToken = generarQrToken();
+      const [result] = await db.query(
+        'UPDATE alumnos SET qr_token = ? WHERE id = ? AND activo = TRUE',
+        [newToken, id]
+      );
+
+      if (result.affectedRows === 0) {
+        return null;
+      }
+
+      logger.info(`QR token regenerado para alumno ID ${id}`);
+      return newToken;
+    } catch (error) {
+      logger.error(`Error en regenerateQrToken (${id}):`, error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Alumno;
-

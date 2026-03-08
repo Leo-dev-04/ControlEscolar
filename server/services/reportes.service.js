@@ -1,5 +1,4 @@
 const db = require('../config/database');
-const emailService = require('./email.service');
 const logger = require('../utils/logger');
 
 async function consolidarSemanaAlumno(alumnoId, fechaInicio, fechaFin) {
@@ -69,9 +68,9 @@ async function generarReportesGrupo(grupoId, fechaInicio, fechaFin) {
     }
 }
 
-async function generarYEnviarReportesSemanales(grupoId, fechaInicio, fechaFin) {
+async function generarReportesSemanales(grupoId, fechaInicio, fechaFin) {
     try {
-        logger.info('Iniciando generacion de reportes');
+        logger.info('Iniciando generación de reportes');
 
         let grupos;
         if (grupoId) {
@@ -86,10 +85,7 @@ async function generarYEnviarReportesSemanales(grupoId, fechaInicio, fechaFin) {
 
         const resumenTotal = {
             grupos: grupos.length,
-            reportesGenerados: 0,
-            emailsEnviados: 0,
-            emailsFallidos: 0,
-            errores: []
+            reportesGenerados: 0
         };
 
         for (const grupo of grupos) {
@@ -97,50 +93,11 @@ async function generarYEnviarReportesSemanales(grupoId, fechaInicio, fechaFin) {
 
             const reportes = await generarReportesGrupo(grupo.id, fechaInicio, fechaFin);
             resumenTotal.reportesGenerados += reportes.length;
-
-            const reportesParaEnvio = reportes.map(function (r) {
-                return {
-                    alumno: r.alumno,
-                    datos: {
-                        ...r.datos,
-                        fecha_inicio: fechaInicio,
-                        fecha_fin: fechaFin
-                    },
-                    parent_email: r.alumno.parent_email,
-                    reporte_id: r.reporteId
-                };
-            });
-
-            const resultadosEnvio = await emailService.enviarReportesMasivos(reportesParaEnvio);
-
-            for (const resultado of resultadosEnvio) {
-                if (resultado.success) {
-                    resumenTotal.emailsEnviados++;
-
-                    const sqlUpdateEnviado = 'UPDATE reportes_semanales SET enviado = TRUE, fecha_envio = NOW() WHERE id = ?';
-                    await db.query(sqlUpdateEnviado, [resultado.reporte_id]);
-
-                    const sqlLogEnvio = 'INSERT INTO email_log (reporte_id, destinatario, asunto, enviado, fecha_envio) VALUES (?, ?, ?, TRUE, NOW())';
-                    await db.query(sqlLogEnvio, [resultado.reporte_id, resultado.email, 'Reporte Semanal']);
-                } else {
-                    resumenTotal.emailsFallidos++;
-                    resumenTotal.errores.push({
-                        alumno_id: resultado.alumno_id,
-                        email: resultado.email,
-                        error: resultado.error
-                    });
-
-                    const sqlLogError = 'INSERT INTO email_log (reporte_id, destinatario, asunto, enviado, error) VALUES (?, ?, ?, FALSE, ?)';
-                    await db.query(sqlLogError, [resultado.reporte_id, resultado.email, 'Reporte Semanal', resultado.error]);
-                }
-            }
         }
 
         logger.info('Proceso completado');
         logger.info('Grupos procesados: ' + resumenTotal.grupos);
         logger.info('Reportes generados: ' + resumenTotal.reportesGenerados);
-        logger.info('Emails enviados: ' + resumenTotal.emailsEnviados);
-        logger.info('Emails fallidos: ' + resumenTotal.emailsFallidos);
 
         return resumenTotal;
     } catch (error) {
@@ -166,8 +123,8 @@ function obtenerFechasSemanaActual() {
 }
 
 module.exports = {
-    consolidarSemanaAlumno: consolidarSemanaAlumno,
-    generarReportesGrupo: generarReportesGrupo,
-    generarYEnviarReportesSemanales: generarYEnviarReportesSemanales,
-    obtenerFechasSemanaActual: obtenerFechasSemanaActual
+    consolidarSemanaAlumno,
+    generarReportesGrupo,
+    generarReportesSemanales,
+    obtenerFechasSemanaActual
 };

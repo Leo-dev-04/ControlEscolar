@@ -47,13 +47,15 @@ CREATE TABLE alumnos (
   parent_email VARCHAR(255) NOT NULL,
   parent_nombre VARCHAR(100),
   parent_telefono VARCHAR(20),
+  qr_token VARCHAR(64) UNIQUE,
   activo BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE RESTRICT,
   INDEX idx_grupo (grupo_id),
   INDEX idx_activo (activo),
   INDEX idx_parent_email (parent_email),
-  INDEX idx_apellidos (apellidos)
+  INDEX idx_apellidos (apellidos),
+  INDEX idx_qr_token (qr_token)
 );
 
 -- Tabla de Asistencias Diarias
@@ -138,30 +140,11 @@ CREATE TABLE reportes_semanales (
   conducta_amarillo INT DEFAULT 0,
   conducta_rojo INT DEFAULT 0,
   observaciones_conducta TEXT,
-  fecha_envio TIMESTAMP NULL,
-  enviado BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE,
   UNIQUE KEY uk_alumno_fecha_inicio (alumno_id, fecha_inicio),
   INDEX idx_alumno (alumno_id),
-  INDEX idx_fecha_inicio (fecha_inicio),
-  INDEX idx_enviado (enviado)
-);
-
--- Tabla de Log de Envíos
-CREATE TABLE email_log (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  reporte_id INT NOT NULL,
-  destinatario VARCHAR(255) NOT NULL,
-  asunto VARCHAR(255) NOT NULL,
-  enviado BOOLEAN DEFAULT FALSE,
-  fecha_envio TIMESTAMP NULL,
-  error TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (reporte_id) REFERENCES reportes_semanales(id) ON DELETE CASCADE,
-  INDEX idx_reporte (reporte_id),
-  INDEX idx_enviado (enviado),
-  INDEX idx_fecha_envio (fecha_envio)
+  INDEX idx_fecha_inicio (fecha_inicio)
 );
 
 -- Insertar datos de prueba con contraseñas hasheadas
@@ -176,15 +159,14 @@ INSERT INTO grupos (nombre, grado, seccion, maestro_id, ciclo_escolar) VALUES
 ('Segundo B', 2, 'B', 3, '2025-2026'),
 ('Tercero A', 3, 'A', 2, '2025-2026');
 
-INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre) VALUES
-('Juan', 'Pérez García', '2018-03-15', 1, 'padre.juan@gmail.com', 'Roberto Pérez'),
-('María', 'López Hernández', '2018-06-20', 1, 'mama.maria@gmail.com', 'Laura Hernández'),
-('Pedro', 'Martínez Silva', '2017-09-10', 2, 'papa.pedro@gmail.com', 'José Martínez'),
-('Ana', 'González Ruiz', '2017-12-05', 2, 'mama.ana@gmail.com', 'Carmen Ruiz'),
-('Luis', 'Ramírez Torres', '2016-04-18', 3, 'papa.luis@gmail.com', 'Miguel Ramírez');
+INSERT INTO alumnos (nombre, apellidos, fecha_nacimiento, grupo_id, parent_email, parent_nombre, qr_token) VALUES
+('Juan', 'Pérez García', '2018-03-15', 1, 'padre.juan@gmail.com', 'Roberto Pérez', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'),
+('María', 'López Hernández', '2018-06-20', 1, 'mama.maria@gmail.com', 'Laura Hernández', 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3'),
+('Pedro', 'Martínez Silva', '2017-09-10', 2, 'papa.pedro@gmail.com', 'José Martínez', 'c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4'),
+('Ana', 'González Ruiz', '2017-12-05', 2, 'mama.ana@gmail.com', 'Carmen Ruiz', 'd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5'),
+('Luis', 'Ramírez Torres', '2016-04-18', 3, 'papa.luis@gmail.com', 'Miguel Ramírez', 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6');
 
-SELECT 'Base de datos creada exitosamente con seguridad mejorada' as mensaje;
+SELECT 'Base de datos creada exitosamente' as mensaje;
 SELECT COUNT(*) as total_usuarios FROM usuarios;
 SELECT COUNT(*) as total_grupos FROM grupos;
 SELECT COUNT(*) as total_alumnos FROM alumnos;
-

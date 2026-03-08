@@ -209,3 +209,21 @@ exports.getByGrupo = async (req, res) => {
   }
 };
 
+/**
+ * Regenerar QR token de un alumno
+ */
+exports.regenerateQr = async (req, res) => {
+  try {
+    const newToken = await Alumno.regenerateQrToken(req.params.id);
+
+    if (!newToken) {
+      return ApiResponse.notFound(res, 'Alumno no encontrado');
+    }
+
+    return ApiResponse.success(res, { qr_token: newToken }, 'QR regenerado exitosamente');
+  } catch (error) {
+    logger.error(`Error en regenerateQr (${req.params.id}):`, error);
+    return ApiResponse.error(res, 'Error regenerando QR', 500);
+  }
+};
+

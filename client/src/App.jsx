@@ -12,6 +12,7 @@ import Reportes from './pages/Reportes'
 import Usuarios from './pages/Usuarios'
 import Grupos from './pages/Grupos'
 import Rezago from './pages/Rezago'
+import ReportePublico from './pages/ReportePublico'
 
 // Componente que protege rutas por rol
 function RoleRoute({ children, allowedRoles }) {
@@ -29,6 +30,9 @@ function App() {
         <Routes>
           {/* Ruta de Login - Pública */}
           <Route path="/login" element={<Login />} />
+
+          {/* Ruta pública - Reporte para padres (QR) */}
+          <Route path="/reporte/:qrToken" element={<ReportePublico />} />
 
           {/* Rutas Protegidas - Requieren autenticación */}
           <Route
@@ -71,4 +75,3 @@ function App() {
 }
 
 export default App
-

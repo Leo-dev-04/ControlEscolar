@@ -30,6 +30,12 @@ function Input({ ...props }) {
   )
 }
 
+// Generador simple de QR usando API pública de Google Charts
+function QRCodeImage({ url, size = 200 }) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=8`
+  return <img src={qrUrl} alt="Código QR" width={size} height={size} style={{ borderRadius: '12px' }} />
+}
+
 export default function Alumnos() {
   const { usuario } = useAuth()
   const isDirector = usuario?.rol === 'director'
@@ -41,18 +47,28 @@ export default function Alumnos() {
   const [busqueda, setBusqueda] = useState('')
   const [grupoAbierto, setGrupoAbierto] = useState({})
 
-  // Modal
+  // Modal alumno
   const [showModal, setShowModal] = useState(false)
   const [editando, setEditando] = useState(null)
   const [form, setForm] = useState(emptyForm())
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
 
+  // Modal QR
+  const [qrAlumno, setQrAlumno] = useState(null)
+  const [regenerando, setRegenerando] = useState(false)
+  const [copiado, setCopiad] = useState(false)
+
   function emptyForm() {
     return {
       nombre: '', apellidos: '', grupo_id: '', fecha_nacimiento: '',
       parent_nombre: '', parent_email: '', parent_telefono: ''
     }
+  }
+
+  const getReporteUrl = (token) => {
+    const base = window.location.origin
+    return `${base}/reporte/${token}`
   }
 
   useEffect(() => { cargar() }, [])
@@ -68,7 +84,6 @@ export default function Alumnos() {
       const grps = rGrupos.data || []
       setAlumnos(data)
       setGrupos(grps)
-      // Abrir todos los grupos
       const abiertos = {}
       data.forEach(a => { abiertos[`${a.escuela}|${a.grado}°${a.grupo}`] = true })
       setGrupoAbierto(abiertos)
@@ -81,7 +96,7 @@ export default function Alumnos() {
     }
   }
 
-  // ── Datos derivados ────────────────────────────────────────────────────────
+  // ── Datos derivados
   const alumnosFiltrados = useMemo(() => {
     if (!busqueda.trim()) return alumnos
     const q = busqueda.toLowerCase()
@@ -118,7 +133,7 @@ export default function Alumnos() {
 
   const toggleGrupo = (key) => setGrupoAbierto(p => ({ ...p, [key]: !p[key] }))
 
-  // ── Formulario ─────────────────────────────────────────────────────────────
+  // ── Formulario
   const validar = () => {
     const e = {}
     if (!form.nombre.trim()) e.nombre = 'Obligatorio'
@@ -179,6 +194,60 @@ export default function Alumnos() {
     setForm(emptyForm()); setErrores({})
   }
 
+  // ── QR Modal
+  const abrirQrModal = (alumno) => {
+    setQrAlumno(alumno)
+    setCopiad(false)
+  }
+
+  const cerrarQrModal = () => {
+    setQrAlumno(null)
+    setRegenerando(false)
+    setCopiad(false)
+  }
+
+  const handleRegenerarQr = async () => {
+    if (!window.confirm('¿Regenerar el código QR? El enlace anterior dejará de funcionar.')) return
+    setRegenerando(true)
+    try {
+      const res = await alumnosService.regenerarQr(qrAlumno.id)
+      const newToken = res.data.data?.qr_token || res.data.qr_token
+      // Actualizar en el estado local
+      setAlumnos(prev => prev.map(a => a.id === qrAlumno.id ? { ...a, qr_token: newToken } : a))
+      setQrAlumno(prev => ({ ...prev, qr_token: newToken }))
+      setCopiad(false)
+    } catch (err) {
+      alert('Error al regenerar QR: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setRegenerando(false)
+    }
+  }
+
+  const handleCopiarEnlace = () => {
+    const url = getReporteUrl(qrAlumno.qr_token)
+    navigator.clipboard.writeText(url)
+    setCopiad(true)
+    setTimeout(() => setCopiad(false), 2000)
+  }
+
+  const handleCompartirWhatsApp = () => {
+    const url = getReporteUrl(qrAlumno.qr_token)
+    const texto = `Consulta el reporte del alumno ${qrAlumno.nombre} ${qrAlumno.apellidos}: ${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+  }
+
+  const handleDescargarQr = () => {
+    const url = getReporteUrl(qrAlumno.qr_token)
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(url)}&margin=8&format=png`
+    const link = document.createElement('a')
+    link.href = qrUrl
+    link.download = `QR_${qrAlumno.nombre}_${qrAlumno.apellidos}.png`
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Grupos agrupados por escuela para el select
   const gruposPorEscuela = useMemo(() => {
     const mapa = {}
@@ -190,7 +259,7 @@ export default function Alumnos() {
     return mapa
   }, [grupos])
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render
   if (loading) return (
     <div className="flex items-center justify-center py-24">
       <div className="text-center">
@@ -203,7 +272,7 @@ export default function Alumnos() {
   return (
     <div className="space-y-5">
 
-      {/* ── Barra superior ──────────────────────────────────────────────────── */}
+      {/* ── Barra superior */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Alumnos</h1>
@@ -255,7 +324,7 @@ export default function Alumnos() {
         </div>
       ) : (
         <>
-          {/* ── Tabs de escuelas ─────────────────────────────────────────────── */}
+          {/* ── Tabs de escuelas */}
           {escuelas.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {escuelas.map((esc, i) => {
@@ -289,7 +358,7 @@ export default function Alumnos() {
             </div>
           )}
 
-          {/* ── Grupos de la escuela activa ──────────────────────────────────── */}
+          {/* ── Grupos de la escuela activa */}
           {escuelaActiva && agrupado[escuelaActiva] && (
             <div className="space-y-4">
               {gruposOrdenados(escuelaActiva).map(grpKey => {
@@ -337,14 +406,14 @@ export default function Alumnos() {
                           <div key={alumno.id}
                             className={`flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50
                                            transition-colors ${idx !== 0 ? 'border-t border-gray-100' : ''}`}>
-                            {/* Avatar neutro */}
+                            {/* Avatar */}
                             <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200
                                             flex items-center justify-center text-gray-500
                                             text-[11px] font-semibold flex-shrink-0">
                               {alumno.nombre?.[0]}{alumno.apellidos?.[0]}
                             </div>
 
-                            {/* Nombre — elemento principal */}
+                            {/* Nombre */}
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-gray-900 text-[15px] leading-tight truncate">
                                 {alumno.apellidos}, {alumno.nombre}
@@ -364,6 +433,17 @@ export default function Alumnos() {
 
                             {/* Acciones */}
                             <div className="flex items-center gap-1 flex-shrink-0">
+                              {/* Botón QR */}
+                              {alumno.qr_token && (
+                                <button onClick={() => abrirQrModal(alumno)}
+                                  className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50
+                                             rounded-lg transition-colors" title="Ver QR / Compartir">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm14 3h.01M17 14h.01M14 17h.01M14 14h3v3h-3v-3zm0 4h3v3h-3v-3zm4-4h3v3h-3v-3z" />
+                                  </svg>
+                                </button>
+                              )}
                               <button onClick={() => abrirModal(alumno)}
                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50
                                            rounded-lg transition-colors" title="Editar">
@@ -397,7 +477,7 @@ export default function Alumnos() {
         </>
       )}
 
-      {/* ══ Modal ═════════════════════════════════════════════════════════════ */}
+      {/* ══ Modal Alumno ════════════════════════════════════════════════════════ */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
@@ -477,7 +557,6 @@ export default function Alumnos() {
                       <Input type="email" value={form.parent_email}
                         onChange={e => handleChange('parent_email', e.target.value)}
                         placeholder="correo@ejemplo.com" error={errores.parent_email} />
-                      <p className="text-xs text-gray-400 mt-1">Se usa para los reportes semanales</p>
                     </Campo>
                     <Campo label="Teléfono *" error={errores.parent_telefono}>
                       <Input type="tel" value={form.parent_telefono}
@@ -507,6 +586,67 @@ export default function Alumnos() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Modal QR ═══════════════════════════════════════════════════════════ */}
+      {qrAlumno && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-bold text-lg leading-tight">Código QR del Alumno</h2>
+                  <p className="text-emerald-100 text-sm mt-0.5">{qrAlumno.nombre} {qrAlumno.apellidos}</p>
+                </div>
+                <button onClick={cerrarQrModal}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* QR Code */}
+            <div className="px-6 py-6 flex flex-col items-center">
+              <div className="bg-white p-3 rounded-xl border-2 border-gray-100 shadow-sm mb-4">
+                <QRCodeImage url={getReporteUrl(qrAlumno.qr_token)} size={200} />
+              </div>
+              <p className="text-xs text-gray-400 text-center mb-1">
+                Los padres pueden escanear este código para ver el reporte
+              </p>
+              <p className="text-xs text-gray-300 text-center break-all px-4">
+                {getReporteUrl(qrAlumno.qr_token)}
+              </p>
+            </div>
+
+            {/* Acciones */}
+            <div className="px-6 pb-6 grid grid-cols-2 gap-3">
+              <button onClick={handleDescargarQr}
+                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                           px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                📥 Descargar QR
+              </button>
+              <button onClick={handleCopiarEnlace}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors
+                           ${copiado ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                {copiado ? '✅ ¡Copiado!' : '🔗 Copiar enlace'}
+              </button>
+              <button onClick={handleCompartirWhatsApp}
+                className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white
+                           px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                📱 WhatsApp
+              </button>
+              <button onClick={handleRegenerarQr} disabled={regenerando}
+                className="flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700
+                           px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
+                {regenerando ? '⏳ ...' : '🔄 Regenerar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

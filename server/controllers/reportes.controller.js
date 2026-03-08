@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const { generarYEnviarReportesSemanales, obtenerFechasSemanaActual } = require('../services/reportes.service');
+const { generarReportesSemanales, obtenerFechasSemanaActual } = require('../services/reportes.service');
 const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 
@@ -60,7 +60,7 @@ exports.generarReportes = async (req, res) => {
     // Calcular fechas de la semana actual
     const { inicio, fin } = obtenerFechasSemanaActual();
 
-    const resultado = await generarYEnviarReportesSemanales(grupo_id, inicio, fin);
+    const resultado = await generarReportesSemanales(grupo_id, inicio, fin);
     return ApiResponse.success(res, resultado, 'Reportes generados correctamente');
   } catch (error) {
     logger.error('Error al generar reportes:', error);

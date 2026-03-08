@@ -45,6 +45,7 @@ const tareasRoutes = require('./routes/tareas.routes');
 const conductaRoutes = require('./routes/conducta.routes');
 const reportesRoutes = require('./routes/reportes.routes');
 const rezagoRoutes = require('./routes/rezago.routes');
+const reportePublicoRoutes = require('./routes/reporte-publico.routes');
 
 // Usar rutas
 app.use('/api/auth', authRoutes); // Autenticación (público)
@@ -56,6 +57,7 @@ app.use('/api/tareas', tareasRoutes);
 app.use('/api/conducta', conductaRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/rezago', rezagoRoutes);
+app.use('/api/reporte', reportePublicoRoutes); // Ruta pública para padres (QR)
 
 // Ruta de prueba - pública
 app.get('/', (req, res) => {
@@ -102,18 +104,7 @@ app.use(notFoundHandler);
 // Middleware de manejo de errores (DEBE ser el último)
 app.use(errorHandler);
 
-// Iniciar cron job para envío automático
-if (process.env.AUTO_SEND_ENABLED === 'true') {
-  try {
-    const { iniciarCronJob } = require('./cron/envio-automatico');
-    iniciarCronJob();
-    logger.info('✅ Cron job de reportes iniciado');
-  } catch (error) {
-    logger.error('❌ Error iniciando cron job:', error);
-  }
-} else {
-  logger.info('⏸️  Envío automático deshabilitado (AUTO_SEND_ENABLED=false)');
-}
+
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
