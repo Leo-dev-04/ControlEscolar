@@ -35,20 +35,27 @@ export default function ReportePublico() {
 
     if (loading) {
         return (
-            <div style={styles.loadingContainer}>
-                <div style={styles.spinner} />
-                <p style={styles.loadingText}>Cargando reporte...</p>
+            <div className="rp-page rp-center">
+                <div className="rp-spinner" />
+                <p className="rp-loading-text">Cargando reporte...</p>
             </div>
         )
     }
 
     if (error) {
         return (
-            <div style={styles.errorContainer}>
-                <div style={styles.errorIcon}>😕</div>
-                <h2 style={styles.errorTitle}>Reporte no encontrado</h2>
-                <p style={styles.errorText}>{error}</p>
-                <p style={styles.errorHint}>Verifica que el enlace o código QR sea correcto.</p>
+            <div className="rp-page rp-center">
+                <div className="rp-error-card">
+                    <div className="rp-error-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M15 9l-6 6M9 9l6 6" />
+                        </svg>
+                    </div>
+                    <h2 className="rp-error-title">Reporte no disponible</h2>
+                    <p className="rp-error-text">{error}</p>
+                    <p className="rp-error-hint">Verifica que el enlace o código QR sea correcto.</p>
+                </div>
             </div>
         )
     }
@@ -58,351 +65,387 @@ export default function ReportePublico() {
     const pctAsistencia = totalDias > 0 ? Math.round((reporte.total_asistencias / totalDias) * 100) : 0
     const pctTareas = reporte.total_tareas > 0 ? Math.round((reporte.tareas_entregadas / reporte.total_tareas) * 100) : 0
 
-    const conductaColor = reporte.conducta_rojo > 0 ? 'rojo'
-        : reporte.conducta_amarillo > 0 ? 'amarillo' : 'verde'
+    const conductaTotal = (reporte.conducta_verde || 0) + (reporte.conducta_amarillo || 0) + (reporte.conducta_rojo || 0)
+    const conductaColor = reporte.conducta_rojo > 0 ? 'rojo' : reporte.conducta_amarillo > 0 ? 'amarillo' : 'verde'
 
     const conductaConfig = {
-        verde: { emoji: '😊', label: 'Excelente', bg: '#d1fae5', border: '#10b981', text: '#065f46', glow: 'rgba(16,185,129,0.15)' },
-        amarillo: { emoji: '😐', label: 'Regular', bg: '#fef3c7', border: '#f59e0b', text: '#92400e', glow: 'rgba(245,158,11,0.15)' },
-        rojo: { emoji: '😟', label: 'Necesita mejorar', bg: '#fee2e2', border: '#ef4444', text: '#991b1b', glow: 'rgba(239,68,68,0.15)' },
+        verde: { label: 'Excelente', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+        amarillo: { label: 'Regular', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+        rojo: { label: 'Necesita mejorar', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     }
     const conducta = conductaConfig[conductaColor]
 
-    const asistenciaColor = pctAsistencia >= 90 ? '#10b981' : pctAsistencia >= 70 ? '#f59e0b' : '#ef4444'
-    const tareasColor = pctTareas >= 80 ? '#6366f1' : pctTareas >= 50 ? '#f59e0b' : '#ef4444'
-
-    const fechaInicio = new Date(reporte.fecha_inicio + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
-    const fechaFin = new Date(reporte.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+    const fechaInicio = new Date(reporte.fecha_inicio + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+    const fechaFin = new Date(reporte.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
 
     return (
-        <div style={styles.page}>
-            {/* Header */}
-            <div style={styles.header}>
-                <div style={styles.headerBadge}>📚 Reporte Semanal</div>
-                <h1 style={styles.headerName}>{alumno.nombre} {alumno.apellidos}</h1>
-                <p style={styles.headerGrado}>{alumno.grado}° Grado · Sección {alumno.grupo}</p>
-                {alumno.escuela && <p style={styles.headerEscuela}>🏫 {alumno.escuela}</p>}
-                <div style={styles.headerFecha}>📅 {fechaInicio} — {fechaFin}</div>
-            </div>
+        <div className="rp-page">
+            <div className="rp-container">
 
-            {/* Contenido */}
-            <div style={styles.content}>
+                {/* Header */}
+                <header className="rp-header">
+                    <div className="rp-header-top">
+                        <span className="rp-badge">Reporte Semanal</span>
+                        <span className="rp-date">{fechaInicio} — {fechaFin}</span>
+                    </div>
+                    <h1 className="rp-student-name">{alumno.nombre} {alumno.apellidos}</h1>
+                    <div className="rp-student-info">
+                        <span>{alumno.grado}° Grado · Sección {alumno.grupo}</span>
+                        {alumno.escuela && <span> · {alumno.escuela}</span>}
+                    </div>
+                </header>
 
-                {/* Asistencia */}
-                <div style={styles.card}>
-                    <div style={styles.cardHeader}>
-                        <div style={styles.cardIcon}>✅</div>
-                        <span style={styles.cardLabel}>Asistencia</span>
-                        <span style={{ ...styles.cardValue, color: asistenciaColor }}>{pctAsistencia}%</span>
-                    </div>
-                    <div style={styles.progressBg}>
-                        <div style={{ ...styles.progressFill, width: `${pctAsistencia}%`, backgroundColor: asistenciaColor }} />
-                    </div>
-                    <p style={styles.cardDetail}>
-                        {reporte.total_asistencias} asistencia{reporte.total_asistencias !== 1 ? 's' : ''} ·{' '}
-                        {reporte.total_faltas} falta{reporte.total_faltas !== 1 ? 's' : ''} ·{' '}
-                        {reporte.total_retardos || 0} retardo{(reporte.total_retardos || 0) !== 1 ? 's' : ''}
-                    </p>
-                </div>
+                {/* Cards Grid */}
+                <div className="rp-grid">
 
-                {/* Tareas */}
-                <div style={styles.card}>
-                    <div style={styles.cardHeader}>
-                        <div style={styles.cardIcon}>📝</div>
-                        <span style={styles.cardLabel}>Tareas</span>
-                        <span style={{ ...styles.cardValue, color: tareasColor }}>
-                            {reporte.tareas_entregadas}/{reporte.total_tareas}
-                        </span>
+                    {/* Asistencia */}
+                    <div className="rp-card">
+                        <div className="rp-card-top">
+                            <span className="rp-card-label">Asistencia</span>
+                            <span className="rp-card-pct" style={{ color: pctAsistencia >= 90 ? '#059669' : pctAsistencia >= 70 ? '#d97706' : '#dc2626' }}>
+                                {pctAsistencia}%
+                            </span>
+                        </div>
+                        <div className="rp-bar-bg">
+                            <div className="rp-bar-fill" style={{
+                                width: `${pctAsistencia}%`,
+                                backgroundColor: pctAsistencia >= 90 ? '#059669' : pctAsistencia >= 70 ? '#d97706' : '#dc2626'
+                            }} />
+                        </div>
+                        <div className="rp-card-meta">
+                            <div className="rp-stat">
+                                <span className="rp-stat-num">{reporte.total_asistencias}</span>
+                                <span className="rp-stat-label">Asistencias</span>
+                            </div>
+                            <div className="rp-stat">
+                                <span className="rp-stat-num">{reporte.total_faltas}</span>
+                                <span className="rp-stat-label">Faltas</span>
+                            </div>
+                            <div className="rp-stat">
+                                <span className="rp-stat-num">{reporte.total_retardos || 0}</span>
+                                <span className="rp-stat-label">Retardos</span>
+                            </div>
+                        </div>
                     </div>
-                    <div style={styles.progressBg}>
-                        <div style={{ ...styles.progressFill, width: `${pctTareas}%`, backgroundColor: tareasColor }} />
+
+                    {/* Tareas */}
+                    <div className="rp-card">
+                        <div className="rp-card-top">
+                            <span className="rp-card-label">Tareas</span>
+                            <span className="rp-card-pct" style={{ color: pctTareas >= 80 ? '#059669' : pctTareas >= 50 ? '#d97706' : '#dc2626' }}>
+                                {reporte.tareas_entregadas}/{reporte.total_tareas}
+                            </span>
+                        </div>
+                        <div className="rp-bar-bg">
+                            <div className="rp-bar-fill" style={{
+                                width: `${pctTareas}%`,
+                                backgroundColor: pctTareas >= 80 ? '#059669' : pctTareas >= 50 ? '#d97706' : '#dc2626'
+                            }} />
+                        </div>
+                        <div className="rp-card-meta">
+                            <div className="rp-stat">
+                                <span className="rp-stat-num">{reporte.tareas_entregadas}</span>
+                                <span className="rp-stat-label">Entregadas</span>
+                            </div>
+                            <div className="rp-stat">
+                                <span className="rp-stat-num">{(reporte.total_tareas || 0) - (reporte.tareas_entregadas || 0)}</span>
+                                <span className="rp-stat-label">Pendientes</span>
+                            </div>
+                        </div>
                     </div>
-                    <p style={styles.cardDetail}>
-                        {reporte.tareas_entregadas} entregada{reporte.tareas_entregadas !== 1 ? 's' : ''} de{' '}
-                        {reporte.total_tareas} asignada{reporte.total_tareas !== 1 ? 's' : ''}
-                    </p>
                 </div>
 
                 {/* Conducta */}
-                <div style={{ ...styles.card, backgroundColor: conducta.bg, border: `2px solid ${conducta.border}`, boxShadow: `0 4px 16px ${conducta.glow}` }}>
-                    <div style={styles.cardHeader}>
-                        <div style={styles.cardIcon}>🚦</div>
-                        <span style={styles.cardLabel}>Conducta</span>
-                        <span style={{ fontSize: '28px' }}>{conducta.emoji}</span>
+                <div className="rp-card rp-conducta-card" style={{ borderColor: conducta.border, backgroundColor: conducta.bg }}>
+                    <div className="rp-card-top">
+                        <span className="rp-card-label">Conducta</span>
+                        <span className="rp-conducta-badge" style={{ backgroundColor: conducta.color }}>
+                            {conducta.label}
+                        </span>
                     </div>
-                    <div style={{ ...styles.conductaBadge, backgroundColor: conducta.border }}>
-                        {conducta.label}
-                    </div>
-                    <div style={styles.semaforoRow}>
-                        <div style={styles.semaforoItem}>
-                            <div style={{ ...styles.semaforoCircle, backgroundColor: '#10b981' }}>{reporte.conducta_verde}</div>
-                            <span style={styles.semaforoLabel}>🟢 Verde</span>
+                    <div className="rp-semaforo">
+                        <div className="rp-semaforo-item">
+                            <div className="rp-semaforo-dot" style={{ backgroundColor: '#059669' }}>{reporte.conducta_verde || 0}</div>
+                            <span className="rp-semaforo-label">Verde</span>
                         </div>
-                        <div style={styles.semaforoItem}>
-                            <div style={{ ...styles.semaforoCircle, backgroundColor: '#f59e0b' }}>{reporte.conducta_amarillo}</div>
-                            <span style={styles.semaforoLabel}>🟡 Amarillo</span>
+                        <div className="rp-semaforo-item">
+                            <div className="rp-semaforo-dot" style={{ backgroundColor: '#d97706' }}>{reporte.conducta_amarillo || 0}</div>
+                            <span className="rp-semaforo-label">Amarillo</span>
                         </div>
-                        <div style={styles.semaforoItem}>
-                            <div style={{ ...styles.semaforoCircle, backgroundColor: '#ef4444' }}>{reporte.conducta_rojo}</div>
-                            <span style={styles.semaforoLabel}>🔴 Rojo</span>
+                        <div className="rp-semaforo-item">
+                            <div className="rp-semaforo-dot" style={{ backgroundColor: '#dc2626' }}>{reporte.conducta_rojo || 0}</div>
+                            <span className="rp-semaforo-label">Rojo</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Observaciones */}
                 {reporte.observaciones_conducta && (
-                    <div style={styles.observaciones}>
-                        <p style={styles.obsLabel}>💭 Observaciones del Maestro</p>
-                        <p style={styles.obsText}>"{reporte.observaciones_conducta}"</p>
+                    <div className="rp-observaciones">
+                        <span className="rp-obs-label">Observaciones del maestro</span>
+                        <p className="rp-obs-text">{reporte.observaciones_conducta}</p>
                     </div>
                 )}
 
-                {/* Motivacional */}
-                <div style={styles.motivacional}>
-                    <p style={styles.motivacionalText}>
-                        ¡Gracias por su apoyo y participación en la educación de su hijo/a! 🎓
-                    </p>
-                </div>
-
                 {/* Footer */}
-                <div style={styles.footer}>
-                    <p style={styles.footerSchool}>🏫 {alumno.escuela || 'Sistema Control Escolar'}</p>
-                    <p style={styles.footerDate}>
-                        Consultado el {new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                <footer className="rp-footer">
+                    <p className="rp-footer-school">{alumno.escuela || 'Sistema Control Escolar'}</p>
+                    <p className="rp-footer-date">
+                        Consultado el {new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
-                </div>
+                </footer>
             </div>
+
+            <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        .rp-page {
+          min-height: 100vh;
+          background-color: #f8fafc;
+          font-family: 'Inter', -apple-system, system-ui, sans-serif;
+          color: #1e293b;
+          -webkit-font-smoothing: antialiased;
+        }
+        .rp-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+        }
+
+        /* Spinner */
+        .rp-spinner {
+          width: 32px; height: 32px;
+          border: 3px solid #e2e8f0;
+          border-top-color: #3b82f6;
+          border-radius: 50%;
+          animation: rp-spin 0.7s linear infinite;
+        }
+        @keyframes rp-spin { to { transform: rotate(360deg); } }
+        .rp-loading-text { margin-top: 12px; color: #94a3b8; font-size: 14px; }
+
+        /* Error */
+        .rp-error-card {
+          text-align: center;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 40px 32px;
+          max-width: 380px;
+        }
+        .rp-error-icon { margin-bottom: 16px; }
+        .rp-error-title { font-size: 18px; font-weight: 600; margin: 0 0 8px; color: #334155; }
+        .rp-error-text { font-size: 14px; color: #ef4444; margin: 0 0 6px; }
+        .rp-error-hint { font-size: 13px; color: #94a3b8; margin: 0; }
+
+        /* Container */
+        .rp-container {
+          max-width: 460px;
+          margin: 0 auto;
+          padding: 0 16px 40px;
+        }
+
+        /* Header */
+        .rp-header {
+          padding: 28px 0 20px;
+          border-bottom: 1px solid #e2e8f0;
+          margin-bottom: 20px;
+        }
+        .rp-header-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+        .rp-badge {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          color: #3b82f6;
+          background: #eff6ff;
+          padding: 4px 10px;
+          border-radius: 6px;
+        }
+        .rp-date {
+          font-size: 12px;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+        .rp-student-name {
+          font-size: 22px;
+          font-weight: 700;
+          margin: 0 0 4px;
+          color: #0f172a;
+          line-height: 1.2;
+        }
+        .rp-student-info {
+          font-size: 13px;
+          color: #64748b;
+        }
+
+        /* Grid */
+        .rp-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        @media (max-width: 400px) {
+          .rp-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Card */
+        .rp-card {
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .rp-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
+        .rp-card-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+        }
+        .rp-card-pct {
+          font-size: 20px;
+          font-weight: 700;
+        }
+
+        /* Progress Bar */
+        .rp-bar-bg {
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 99px;
+          overflow: hidden;
+          margin-bottom: 12px;
+        }
+        .rp-bar-fill {
+          height: 6px;
+          border-radius: 99px;
+          transition: width 0.5s ease;
+        }
+
+        /* Stats */
+        .rp-card-meta {
+          display: flex;
+          gap: 12px;
+        }
+        .rp-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex: 1;
+        }
+        .rp-stat-num {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1;
+        }
+        .rp-stat-label {
+          font-size: 10px;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          margin-top: 2px;
+          font-weight: 500;
+        }
+
+        /* Conducta */
+        .rp-conducta-card {
+          margin-bottom: 12px;
+          border-width: 1.5px;
+        }
+        .rp-conducta-badge {
+          font-size: 11px;
+          font-weight: 600;
+          color: #fff;
+          padding: 3px 10px;
+          border-radius: 99px;
+        }
+        .rp-semaforo {
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          margin-top: 4px;
+        }
+        .rp-semaforo-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+        .rp-semaforo-dot {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          color: #fff;
+          font-size: 16px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .rp-semaforo-label {
+          font-size: 10px;
+          font-weight: 500;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        /* Observaciones */
+        .rp-observaciones {
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-left: 3px solid #3b82f6;
+          border-radius: 0 12px 12px 0;
+          padding: 14px 16px;
+          margin-bottom: 12px;
+        }
+        .rp-obs-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          display: block;
+          margin-bottom: 6px;
+        }
+        .rp-obs-text {
+          font-size: 14px;
+          color: #334155;
+          line-height: 1.5;
+          margin: 0;
+          font-style: italic;
+        }
+
+        /* Footer */
+        .rp-footer {
+          text-align: center;
+          padding-top: 20px;
+          border-top: 1px solid #e2e8f0;
+          margin-top: 8px;
+        }
+        .rp-footer-school {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+          margin: 0 0 2px;
+        }
+        .rp-footer-date {
+          font-size: 11px;
+          color: #94a3b8;
+          margin: 0;
+        }
+      `}</style>
         </div>
     )
 }
-
-const styles = {
-    page: {
-        minHeight: '100vh',
-        backgroundColor: '#f1f5f9',
-        fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-    },
-    // Loading
-    loadingContainer: {
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f1f5f9',
-    },
-    spinner: {
-        width: '40px',
-        height: '40px',
-        border: '4px solid #e2e8f0',
-        borderTopColor: '#3b82f6',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-    },
-    loadingText: {
-        marginTop: '16px',
-        color: '#64748b',
-        fontSize: '15px',
-    },
-    // Error
-    errorContainer: {
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f1f5f9',
-        padding: '24px',
-        textAlign: 'center',
-    },
-    errorIcon: { fontSize: '56px', marginBottom: '16px' },
-    errorTitle: { fontSize: '22px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px' },
-    errorText: { fontSize: '15px', color: '#ef4444', margin: '0 0 8px' },
-    errorHint: { fontSize: '14px', color: '#94a3b8', margin: 0 },
-    // Header
-    header: {
-        background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #2563eb 100%)',
-        padding: '32px 24px 24px',
-        textAlign: 'center',
-        borderRadius: '0 0 24px 24px',
-    },
-    headerBadge: {
-        display: 'inline-block',
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        borderRadius: '10px',
-        padding: '6px 16px',
-        color: '#93c5fd',
-        fontSize: '12px',
-        fontWeight: '600',
-        letterSpacing: '1px',
-        textTransform: 'uppercase',
-        marginBottom: '12px',
-    },
-    headerName: {
-        margin: '0 0 4px',
-        color: '#fff',
-        fontSize: '24px',
-        fontWeight: '700',
-    },
-    headerGrado: {
-        margin: '0',
-        color: '#bfdbfe',
-        fontSize: '14px',
-    },
-    headerEscuela: {
-        margin: '6px 0 0',
-        color: '#93c5fd',
-        fontSize: '13px',
-    },
-    headerFecha: {
-        marginTop: '14px',
-        display: 'inline-block',
-        backgroundColor: 'rgba(255,255,255,0.12)',
-        borderRadius: '8px',
-        padding: '8px 16px',
-        color: '#e0f2fe',
-        fontSize: '13px',
-    },
-    // Content
-    content: {
-        maxWidth: '480px',
-        margin: '0 auto',
-        padding: '20px 16px 32px',
-    },
-    // Card
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: '16px',
-        padding: '20px',
-        marginBottom: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-    },
-    cardHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '12px',
-    },
-    cardIcon: { fontSize: '22px' },
-    cardLabel: { flex: 1, fontSize: '15px', fontWeight: '700', color: '#1e293b' },
-    cardValue: { fontSize: '26px', fontWeight: '800' },
-    progressBg: {
-        height: '10px',
-        backgroundColor: '#e2e8f0',
-        borderRadius: '999px',
-        overflow: 'hidden',
-        marginBottom: '8px',
-    },
-    progressFill: {
-        height: '10px',
-        borderRadius: '999px',
-        transition: 'width 0.6s ease',
-    },
-    cardDetail: {
-        margin: 0,
-        fontSize: '13px',
-        color: '#64748b',
-    },
-    // Conducta
-    conductaBadge: {
-        display: 'inline-block',
-        color: '#fff',
-        fontSize: '12px',
-        fontWeight: '700',
-        padding: '4px 14px',
-        borderRadius: '999px',
-        marginBottom: '14px',
-    },
-    semaforoRow: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '20px',
-    },
-    semaforoItem: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '6px',
-    },
-    semaforoCircle: {
-        width: '44px',
-        height: '44px',
-        borderRadius: '50%',
-        color: '#fff',
-        fontSize: '20px',
-        fontWeight: '800',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    semaforoLabel: {
-        fontSize: '11px',
-        fontWeight: '600',
-        color: '#475569',
-    },
-    // Observaciones
-    observaciones: {
-        backgroundColor: '#eff6ff',
-        borderLeft: '4px solid #3b82f6',
-        borderRadius: '0 14px 14px 0',
-        padding: '16px 20px',
-        marginBottom: '16px',
-    },
-    obsLabel: {
-        margin: '0 0 6px',
-        fontSize: '13px',
-        fontWeight: '700',
-        color: '#1d4ed8',
-        letterSpacing: '0.5px',
-        textTransform: 'uppercase',
-    },
-    obsText: {
-        margin: 0,
-        fontSize: '14px',
-        color: '#374151',
-        fontStyle: 'italic',
-        lineHeight: '1.6',
-    },
-    // Motivacional
-    motivacional: {
-        background: 'linear-gradient(135deg, #eff6ff, #f5f3ff)',
-        borderRadius: '14px',
-        padding: '18px 20px',
-        textAlign: 'center',
-        marginBottom: '20px',
-    },
-    motivacionalText: {
-        margin: 0,
-        color: '#4f46e5',
-        fontSize: '14px',
-        fontWeight: '600',
-    },
-    // Footer
-    footer: {
-        textAlign: 'center',
-        paddingTop: '16px',
-        borderTop: '1px solid #e2e8f0',
-    },
-    footerSchool: {
-        margin: '0 0 4px',
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#475569',
-    },
-    footerDate: {
-        margin: 0,
-        fontSize: '12px',
-        color: '#94a3b8',
-    },
-}
-
-// CSS animation for spinner
-const styleSheet = document.createElement('style')
-styleSheet.textContent = `
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-`
-document.head.appendChild(styleSheet)
