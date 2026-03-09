@@ -46,6 +46,7 @@ const conductaRoutes = require('./routes/conducta.routes');
 const reportesRoutes = require('./routes/reportes.routes');
 const rezagoRoutes = require('./routes/rezago.routes');
 const reportePublicoRoutes = require('./routes/reporte-publico.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 // Usar rutas
 app.use('/api/auth', authRoutes); // Autenticación (público)
@@ -58,6 +59,7 @@ app.use('/api/conducta', conductaRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/rezago', rezagoRoutes);
 app.use('/api/reporte', reportePublicoRoutes); // Ruta pública para padres (QR)
+app.use('/api/dashboard', dashboardRoutes);
 
 // Ruta de prueba - pública
 app.get('/', (req, res) => {
@@ -117,6 +119,10 @@ process.on('uncaughtException', (error) => {
   setTimeout(() => process.exit(1), 1000);
 });
 
+// Iniciar cron jobs
+const { iniciarCronReportes } = require('./cron/auto-reportes');
+iniciarCronReportes();
+
 // Iniciar servidor
 app.listen(PORT, () => {
   logger.info('════════════════════════════════════════════════');
@@ -127,4 +133,4 @@ app.listen(PORT, () => {
   logger.info('════════════════════════════════════════════════');
 });
 
-module.exports = app; // Para testing
+module.exports = app;

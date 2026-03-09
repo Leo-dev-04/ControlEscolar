@@ -10,6 +10,7 @@ exports.getAll = async (req, res) => {
     let query = `
       SELECT r.*, 
              CONCAT(a.nombre, ' ', a.apellidos) as alumno_nombre,
+             a.parent_telefono, a.qr_token,
              g.nombre as grupo_nombre,
              g.grado,
              g.seccion
