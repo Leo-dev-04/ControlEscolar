@@ -8,11 +8,11 @@ const { tareaValidators } = require('../utils/validators');
 // Todas las rutas requieren autenticación
 router.use(verificarToken);
 
-// Crear una tarea (director y maestro)
-router.post('/', verificarRol('director', 'maestro'), tareaValidators.create, validarRequest, tareasController.crearTarea);
+// Crear una tarea (solo maestro)
+router.post('/', verificarRol('maestro'), tareaValidators.create, validarRequest, tareasController.crearTarea);
 
-// Registrar entregas de una tarea (director y maestro)
-router.post('/entregas', verificarRol('director', 'maestro'), tareasController.registrarEntregas);
+// Registrar entregas de una tarea (solo maestro)
+router.post('/entregas', verificarRol('maestro'), tareasController.registrarEntregas);
 
 // Obtener tareas de un grupo
 router.get('/', tareasController.obtenerTareasPorGrupo);

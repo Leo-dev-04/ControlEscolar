@@ -8,8 +8,8 @@ const { asistenciaValidators } = require('../utils/validators');
 // Todas las rutas requieren autenticación
 router.use(verificarToken);
 
-// Registrar asistencias del día (director y maestro)
-router.post('/', verificarRol('director', 'maestro'), asistenciaValidators.create, validarRequest, asistenciasController.registrarAsistencias);
+// Registrar asistencias del día (solo maestro)
+router.post('/', verificarRol('maestro'), asistenciaValidators.create, validarRequest, asistenciasController.registrarAsistencias);
 
 // Obtener asistencias por fecha
 router.get('/', asistenciasController.obtenerAsistenciasPorFecha);
