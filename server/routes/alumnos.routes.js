@@ -20,9 +20,6 @@ router.get(
 router.get(
     '/grupo/:grupoId',
     verificarToken,
-    commonValidators.id,
-    commonValidators.pagination,
-    validarRequest,
     alumnosController.getByGrupo
 );
 

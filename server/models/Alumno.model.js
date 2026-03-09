@@ -63,6 +63,43 @@ class Alumno {
   }
 
   /**
+   * Obtener alumnos por grupo
+   */
+  static async findByGrupo(grupoId, page = 1, limit = 100) {
+    try {
+      page = parseInt(page) || 1;
+      limit = Math.min(parseInt(limit) || 100, 200);
+      const offset = (page - 1) * limit;
+
+      const [countResult] = await db.query(
+        'SELECT COUNT(*) as total FROM alumnos WHERE grupo_id = ? AND activo = TRUE',
+        [grupoId]
+      );
+      const total = countResult[0].total;
+
+      const [rows] = await db.query(`
+        SELECT 
+          a.id, a.nombre, a.apellidos, a.fecha_nacimiento,
+          a.parent_email, a.parent_nombre, a.parent_telefono, a.qr_token,
+          g.id as grupo_id, g.nombre as grupo_nombre, g.grado, g.seccion as grupo
+        FROM alumnos a
+        INNER JOIN grupos g ON a.grupo_id = g.id
+        WHERE a.grupo_id = ? AND a.activo = TRUE
+        ORDER BY a.apellidos, a.nombre
+        LIMIT ? OFFSET ?
+      `, [grupoId, limit, offset]);
+
+      return {
+        data: rows,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      };
+    } catch (error) {
+      logger.error('Error en findByGrupo:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtener alumno por ID
    */
   static async findById(id) {
