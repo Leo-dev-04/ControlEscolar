@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { alumnosService } from '../services/alumnos.service'
 import { gruposService } from '../services/grupos.service'
 import { conductaService } from '../services/conducta.service'
+import { useAuth } from '../context/AuthContext'
 
 export default function Conducta() {
+  const { usuario } = useAuth()
+  const esDirector = usuario?.rol === 'director'
   const [grupos, setGrupos] = useState([])
   const [grupoSeleccionado, setGrupoSeleccionado] = useState('')
   const [alumnos, setAlumnos] = useState([])
@@ -36,7 +39,6 @@ export default function Conducta() {
       if (data.length > 0) setGrupoSeleccionado(data[0].id)
     } catch (error) {
       console.error('Error al cargar grupos:', error)
-      alert('Error al cargar grupos.')
     } finally {
       setLoading(false)
     }
@@ -47,10 +49,8 @@ export default function Conducta() {
       setLoading(true)
       const response = await alumnosService.getByGrupo(grupoSeleccionado)
       const lista = response.data?.data || response.data || []
-
       const conductaInicial = {}
       lista.forEach(a => { conductaInicial[a.id] = { color: 'verde', nota: '' } })
-
       setAlumnos(lista)
       setConductas(conductaInicial)
     } catch (error) {
@@ -67,9 +67,7 @@ export default function Conducta() {
       const data = response.data?.data || response.data || []
       if (data.length > 0) {
         const existentes = {}
-        data.forEach(c => {
-          existentes[c.alumno_id] = { color: c.color, nota: c.observaciones || '' }
-        })
+        data.forEach(c => { existentes[c.alumno_id] = { color: c.color, nota: c.observaciones || '' } })
         setConductas(prev => ({ ...prev, ...existentes }))
       }
     } catch (error) {
@@ -78,10 +76,12 @@ export default function Conducta() {
   }
 
   const cambiarConducta = (alumnoId, color) => {
+    if (esDirector) return
     setConductas(prev => ({ ...prev, [alumnoId]: { ...prev[alumnoId], color } }))
   }
 
   const abrirNota = (alumnoId) => {
+    if (esDirector) return
     setNotaActual({ alumnoId, nota: conductas[alumnoId]?.nota || '' })
   }
 
@@ -98,6 +98,7 @@ export default function Conducta() {
   const contarPorColor = (color) => Object.values(conductas).filter(c => c.color === color).length
 
   const handleGuardar = async () => {
+    if (esDirector) return
     if (!grupoSeleccionado) return alert('Selecciona un grupo primero')
     setGuardando(true)
     try {
@@ -130,7 +131,12 @@ export default function Conducta() {
     <div className="max-w-4xl mx-auto pb-20">
       <h1 className="text-2xl font-bold text-gray-800 mb-4">🚦 Semáforo de Conducta</h1>
 
-      {/* Header */}
+      {esDirector && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-700 font-medium">
+          👁️ Vista de supervisión — Solo lectura
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -150,7 +156,6 @@ export default function Conducta() {
         </div>
       </div>
 
-      {/* Resumen */}
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
         <h3 className="font-bold text-lg mb-3">📊 Resumen del Día</h3>
         <div className="grid grid-cols-3 gap-3">
@@ -164,11 +169,12 @@ export default function Conducta() {
         </div>
       </div>
 
-      {/* Lista de alumnos */}
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-        <p className="text-sm text-gray-600 mb-4">
-          💡 Selecciona el color del semáforo para cada alumno. Verde es el predeterminado.
-        </p>
+        {!esDirector && (
+          <p className="text-sm text-gray-600 mb-4">
+            💡 Selecciona el color del semáforo para cada alumno. Verde es el predeterminado.
+          </p>
+        )}
         <div className="space-y-3">
           {alumnos.map(alumno => {
             const conductaActual = conductas[alumno.id] || { color: 'verde', nota: '' }
@@ -176,28 +182,30 @@ export default function Conducta() {
             return (
               <div key={alumno.id} className={`${info.bg} border-2 ${info.border} rounded-lg p-4`}>
                 <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="font-bold text-lg">{alumno.nombre} {alumno.apellidos}</div>
-                  </div>
+                  <div className="font-bold text-lg">{alumno.nombre} {alumno.apellidos}</div>
                   <div className="text-4xl">{info.emoji}</div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  {Object.entries(semaforo).map(([key, s]) => (
-                    <button key={key} onClick={() => cambiarConducta(alumno.id, key)}
-                      className={`py-3 rounded-lg font-bold transition-all ${conductaActual.color === key
-                        ? `bg-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-500 text-white scale-105 shadow-lg`
-                        : `bg-white text-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-600 border-2 border-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-300`
-                        }`}>
-                      {key === 'verde' ? '🟢 Verde' : key === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo'}
-                    </button>
-                  ))}
-                </div>
+                {!esDirector && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {Object.entries(semaforo).map(([key, s]) => (
+                      <button key={key} onClick={() => cambiarConducta(alumno.id, key)}
+                        className={`py-3 rounded-lg font-bold transition-all ${conductaActual.color === key
+                          ? `bg-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-500 text-white scale-105 shadow-lg`
+                          : `bg-white text-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-600 border-2 border-${key === 'verde' ? 'green' : key === 'amarillo' ? 'yellow' : 'red'}-300`
+                          }`}>
+                        {key === 'verde' ? '🟢 Verde' : key === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo'}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                <button onClick={() => abrirNota(alumno.id)}
-                  className="w-full py-2 bg-white border-2 border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50">
-                  {conductaActual.nota ? '📝 Editar Nota' : '➕ Agregar Nota'}
-                </button>
+                {!esDirector && (
+                  <button onClick={() => abrirNota(alumno.id)}
+                    className="w-full py-2 bg-white border-2 border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50">
+                    {conductaActual.nota ? '📝 Editar Nota' : '➕ Agregar Nota'}
+                  </button>
+                )}
 
                 {conductaActual.nota && (
                   <div className="mt-2 p-2 bg-white rounded text-sm italic">
@@ -210,39 +218,34 @@ export default function Conducta() {
         </div>
       </div>
 
-      {/* Modal nota */}
-      {notaActual.alumnoId && (
+      {/* Modal nota - solo maestros */}
+      {!esDirector && notaActual.alumnoId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-xl font-bold mb-4">📝 Nota de Conducta</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Escribe lo que sucedió (Ej: "Peleó en el recreo", "Excelente participación", etc.)
-            </p>
             <textarea value={notaActual.nota} onChange={e => setNotaActual({ ...notaActual, nota: e.target.value })}
               rows="4" placeholder="Escribe aquí..."
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4" />
             <div className="flex gap-3">
               <button onClick={() => setNotaActual({ alumnoId: null, nota: '' })}
-                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 rounded-lg font-bold">
-                Cancelar
-              </button>
+                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 rounded-lg font-bold">Cancelar</button>
               <button onClick={guardarNota}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">
-                Guardar
-              </button>
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">Guardar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Guardar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 md:relative md:bg-transparent md:border-0">
-        <button onClick={handleGuardar} disabled={guardando}
-          className={`w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all ${guardando
-            ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}`}>
-          {guardando ? '⏳ Guardando...' : '💾 Guardar Conducta del Día'}
-        </button>
-      </div>
+      {/* Guardar - solo maestros */}
+      {!esDirector && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 md:relative md:bg-transparent md:border-0">
+          <button onClick={handleGuardar} disabled={guardando}
+            className={`w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all ${guardando
+              ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}`}>
+            {guardando ? '⏳ Guardando...' : '💾 Guardar Conducta del Día'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

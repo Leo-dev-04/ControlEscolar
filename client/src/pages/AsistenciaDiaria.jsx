@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function AsistenciaDiaria() {
   const { usuario } = useAuth()
+  const esDirector = usuario?.rol === 'director'
   const [grupos, setGrupos] = useState([])
   const [grupoSeleccionado, setGrupoSeleccionado] = useState('')
   const [alumnos, setAlumnos] = useState([])
@@ -31,7 +32,6 @@ export default function AsistenciaDiaria() {
       if (data.length > 0) setGrupoSeleccionado(data[0].id)
     } catch (error) {
       console.error('Error al cargar grupos:', error)
-      alert('Error al cargar grupos.')
     } finally {
       setLoading(false)
     }
@@ -42,10 +42,8 @@ export default function AsistenciaDiaria() {
       setLoading(true)
       const response = await alumnosService.getByGrupo(grupoSeleccionado)
       const lista = response.data?.data || response.data || []
-
       const asistenciasIniciales = {}
       lista.forEach(a => { asistenciasIniciales[a.id] = 'presente' })
-
       setAlumnos(lista)
       setAsistencias(asistenciasIniciales)
     } catch (error) {
@@ -71,6 +69,7 @@ export default function AsistenciaDiaria() {
   }
 
   const toggleAsistencia = (alumnoId) => {
+    if (esDirector) return
     setAsistencias(prev => {
       const actual = prev[alumnoId]
       const siguiente = actual === 'presente' ? 'retardo' : actual === 'retardo' ? 'falta' : 'presente'
@@ -79,6 +78,7 @@ export default function AsistenciaDiaria() {
   }
 
   const handleGuardar = async () => {
+    if (esDirector) return
     if (!grupoSeleccionado) return alert('Selecciona un grupo primero')
     setGuardando(true)
     try {
@@ -113,9 +113,14 @@ export default function AsistenciaDiaria() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">📋 Asistencia Diaria</h1>
+
+        {esDirector && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-700 font-medium">
+            👁️ Vista de supervisión — Solo lectura
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -150,40 +155,40 @@ export default function AsistenciaDiaria() {
         </div>
       </div>
 
-      {/* Lista de alumnos */}
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-        <p className="text-sm text-gray-600 mb-4">
-          💡 Toca a un alumno para cambiar su estado: <strong>Presente → Retardo → Falta</strong>
-        </p>
+        {!esDirector && (
+          <p className="text-sm text-gray-600 mb-4">
+            💡 Toca a un alumno para cambiar su estado: <strong>Presente → Retardo → Falta</strong>
+          </p>
+        )}
         <div className="space-y-2">
           {alumnos.map(alumno => {
             const config = estadoConfig[asistencias[alumno.id]] || estadoConfig.presente
             return (
-              <button key={alumno.id} onClick={() => toggleAsistencia(alumno.id)}
-                className={`w-full p-4 rounded-lg font-semibold text-left transition-all transform active:scale-95 ${config.bg}`}>
+              <div key={alumno.id} onClick={() => toggleAsistencia(alumno.id)}
+                className={`w-full p-4 rounded-lg font-semibold text-left transition-all ${config.bg} ${esDirector ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="text-3xl">{config.emoji}</div>
-                    <div>
-                      <div className="text-lg">{alumno.nombre} {alumno.apellidos}</div>
-                    </div>
+                    <div className="text-lg">{alumno.nombre} {alumno.apellidos}</div>
                   </div>
                   <div className="text-sm font-bold">{config.label}</div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
       </div>
 
-      {/* Guardar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 md:relative md:bg-transparent md:border-0">
-        <button onClick={handleGuardar} disabled={guardando}
-          className={`w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all ${guardando
-            ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}`}>
-          {guardando ? '⏳ Guardando...' : '💾 Guardar Asistencia'}
-        </button>
-      </div>
+      {!esDirector && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 md:relative md:bg-transparent md:border-0">
+          <button onClick={handleGuardar} disabled={guardando}
+            className={`w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all ${guardando
+              ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}`}>
+            {guardando ? '⏳ Guardando...' : '💾 Guardar Asistencia'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
