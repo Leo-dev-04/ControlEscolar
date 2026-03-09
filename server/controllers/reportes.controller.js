@@ -5,7 +5,9 @@ const logger = require('../utils/logger');
 
 exports.getAll = async (req, res) => {
   try {
-    const [reportes] = await db.query(`
+    const usuario = req.usuario;
+
+    let query = `
       SELECT r.*, 
              CONCAT(a.nombre, ' ', a.apellidos) as alumno_nombre,
              g.nombre as grupo_nombre,
@@ -14,8 +16,17 @@ exports.getAll = async (req, res) => {
       FROM reportes_semanales r
       INNER JOIN alumnos a ON r.alumno_id = a.id
       INNER JOIN grupos g ON a.grupo_id = g.id
-      ORDER BY r.fecha_inicio DESC
-    `);
+    `;
+    const params = [];
+
+    if (usuario && usuario.rol === 'maestro') {
+      query += ' WHERE g.maestro_id = ?';
+      params.push(usuario.id);
+    }
+
+    query += ' ORDER BY r.fecha_inicio DESC';
+
+    const [reportes] = await db.query(query, params);
     return ApiResponse.success(res, reportes, 'Reportes obtenidos correctamente');
   } catch (error) {
     logger.error('Error al obtener reportes:', error);

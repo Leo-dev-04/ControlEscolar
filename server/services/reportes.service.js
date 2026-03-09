@@ -45,12 +45,12 @@ async function generarReportesGrupo(grupoId, fechaInicio, fechaFin) {
             let reporteId;
 
             if (existente.length > 0) {
-                const sqlUpdate = 'UPDATE reportes_semanales SET fecha_fin = ?, total_asistencias = ?, total_faltas = ?, total_tareas = ?, tareas_entregadas = ?, conducta_verde = ?, conducta_amarillo = ?, conducta_rojo = ?, observaciones_conducta = ? WHERE id = ?';
-                await db.query(sqlUpdate, [fechaFin, datos.total_asistencias, datos.total_faltas, datos.total_tareas, datos.tareas_entregadas, datos.conducta_verde, datos.conducta_amarillo, datos.conducta_rojo, datos.observaciones_conducta, existente[0].id]);
+                const sqlUpdate = 'UPDATE reportes_semanales SET fecha_fin = ?, total_asistencias = ?, total_faltas = ?, total_retardos = ?, total_tareas = ?, tareas_entregadas = ?, conducta_verde = ?, conducta_amarillo = ?, conducta_rojo = ?, observaciones_conducta = ? WHERE id = ?';
+                await db.query(sqlUpdate, [fechaFin, datos.total_asistencias, datos.total_faltas, datos.total_retardos, datos.total_tareas, datos.tareas_entregadas, datos.conducta_verde, datos.conducta_amarillo, datos.conducta_rojo, datos.observaciones_conducta, existente[0].id]);
                 reporteId = existente[0].id;
             } else {
-                const sqlInsert = 'INSERT INTO reportes_semanales (alumno_id, fecha_inicio, fecha_fin, total_asistencias, total_faltas, total_tareas, tareas_entregadas, conducta_verde, conducta_amarillo, conducta_rojo, observaciones_conducta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-                const [resultado] = await db.query(sqlInsert, [alumno.id, fechaInicio, fechaFin, datos.total_asistencias, datos.total_faltas, datos.total_tareas, datos.tareas_entregadas, datos.conducta_verde, datos.conducta_amarillo, datos.conducta_rojo, datos.observaciones_conducta]);
+                const sqlInsert = 'INSERT INTO reportes_semanales (alumno_id, fecha_inicio, fecha_fin, total_asistencias, total_faltas, total_retardos, total_tareas, tareas_entregadas, conducta_verde, conducta_amarillo, conducta_rojo, observaciones_conducta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+                const [resultado] = await db.query(sqlInsert, [alumno.id, fechaInicio, fechaFin, datos.total_asistencias, datos.total_faltas, datos.total_retardos, datos.total_tareas, datos.tareas_entregadas, datos.conducta_verde, datos.conducta_amarillo, datos.conducta_rojo, datos.observaciones_conducta]);
                 reporteId = resultado.insertId;
             }
 

@@ -5,7 +5,5 @@ export const reportesService = {
   getById: (id) => api.get(`/reportes/${id}`),
   getByAlumno: (alumnoId) => api.get(`/reportes/alumno/${alumnoId}`),
   generar: (data) => api.post('/reportes/generar', data),
-  create: (data) => api.post('/reportes', data),
-  update: (id, data) => api.put(`/reportes/${id}`, data),
   delete: (id) => api.delete(`/reportes/${id}`)
 }

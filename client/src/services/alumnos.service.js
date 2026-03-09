@@ -2,6 +2,7 @@ import api from './api'
 
 export const alumnosService = {
   getAll: () => api.get('/alumnos'),
+  getByGrupo: (grupoId) => api.get(`/alumnos/grupo/${grupoId}`),
   getById: (id) => api.get(`/alumnos/${id}`),
   create: (data) => api.post('/alumnos', data),
   update: (id, data) => api.put(`/alumnos/${id}`, data),

@@ -19,9 +19,10 @@ export default function Reportes() {
   const cargarGrupos = async () => {
     try {
       const response = await gruposService.obtenerTodos()
-      setGrupos(response.data)
-      if (response.data.length > 0) {
-        setGrupoSeleccionado(response.data[0].id)
+      const data = response.data?.data || response.data || []
+      setGrupos(data)
+      if (data.length > 0) {
+        setGrupoSeleccionado(data[0].id)
       }
     } catch (error) {
       console.error('Error al cargar grupos:', error)
