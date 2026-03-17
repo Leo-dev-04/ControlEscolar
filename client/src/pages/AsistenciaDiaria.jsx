@@ -18,53 +18,55 @@ export default function AsistenciaDiaria() {
   useEffect(() => { cargarGrupos() }, [])
 
   useEffect(() => {
-    if (grupoSeleccionado) {
-      cargarAlumnos()
-      cargarAsistenciasExistentes()
-    }
+    if (grupoSeleccionado) cargarDatos()
   }, [grupoSeleccionado, fecha])
 
   const cargarGrupos = async () => {
     try {
       const response = await gruposService.obtenerTodos()
       const data = response.data?.data || response.data || []
-      setGrupos(data)
-      if (data.length > 0) setGrupoSeleccionado(data[0].id)
+      setGrupos(Array.isArray(data) ? data : [])
+      if (data.length > 0) setGrupoSeleccionado(String(data[0].id))
     } catch (error) {
       console.error('Error al cargar grupos:', error)
+      setGrupos([])
     } finally {
       setLoading(false)
     }
   }
 
-  const cargarAlumnos = async () => {
+  const cargarDatos = async () => {
+    if (!grupoSeleccionado) return
+    setLoading(true)
     try {
-      setLoading(true)
+      // Cargar alumnos primero
       const response = await alumnosService.getByGrupo(grupoSeleccionado)
-      const lista = response.data?.data || response.data || []
+      const rawData = response.data?.data || response.data || []
+      const lista = Array.isArray(rawData) ? rawData : []
+      
+      // Inicializar todos como presente
       const asistenciasIniciales = {}
       lista.forEach(a => { asistenciasIniciales[a.id] = 'presente' })
+
+      // Cargar asistencias existentes para sobreescribir
+      try {
+        const asistResponse = await asistenciasService.obtenerPorFecha(grupoSeleccionado, fecha)
+        const asistData = asistResponse.data?.data || asistResponse.data || []
+        if (Array.isArray(asistData) && asistData.length > 0) {
+          asistData.forEach(a => { asistenciasIniciales[a.alumno_id] = a.estado })
+        }
+      } catch {
+        // Si falla cargar existentes, seguimos con los valores por defecto
+      }
+
       setAlumnos(lista)
       setAsistencias(asistenciasIniciales)
     } catch (error) {
-      console.error('Error al cargar alumnos:', error)
+      console.error('Error al cargar datos:', error)
       setAlumnos([])
+      setAsistencias({})
     } finally {
       setLoading(false)
-    }
-  }
-
-  const cargarAsistenciasExistentes = async () => {
-    try {
-      const response = await asistenciasService.obtenerPorFecha(grupoSeleccionado, fecha)
-      const data = response.data?.data || response.data || []
-      if (data.length > 0) {
-        const existentes = {}
-        data.forEach(a => { existentes[a.alumno_id] = a.estado })
-        setAsistencias(prev => ({ ...prev, ...existentes }))
-      }
-    } catch (error) {
-      console.error('Error al cargar asistencias existentes:', error)
     }
   }
 
@@ -79,13 +81,13 @@ export default function AsistenciaDiaria() {
 
   const handleGuardar = async () => {
     if (esDirector) return
-    if (!grupoSeleccionado) return alert('Selecciona un grupo primero')
+    if (!grupoSeleccionado || alumnos.length === 0) return alert('No hay alumnos para guardar')
     setGuardando(true)
     try {
       await asistenciasService.registrar({
         fecha,
-        grupo_id: grupoSeleccionado,
-        asistencias: alumnos.map(a => ({ alumno_id: a.id, estado: asistencias[a.id] }))
+        grupo_id: parseInt(grupoSeleccionado),
+        asistencias: alumnos.map(a => ({ alumno_id: a.id, estado: asistencias[a.id] || 'presente' }))
       })
       alert('✅ Asistencia guardada correctamente')
     } catch (error) {
@@ -99,11 +101,11 @@ export default function AsistenciaDiaria() {
 
   const estadoConfig = {
     presente: { bg: 'bg-green-100 border-2 border-green-500 text-green-800', emoji: '✅', label: 'PRESENTE' },
-    retardo: { bg: 'bg-yellow-100 border-2 border-yellow-500 text-yellow-800', emoji: '🕐', label: 'RETARDO' },
-    falta: { bg: 'bg-red-100 border-2 border-red-500 text-red-800', emoji: '❌', label: 'FALTA' },
+    retardo:  { bg: 'bg-yellow-100 border-2 border-yellow-500 text-yellow-800', emoji: '🕐', label: 'RETARDO' },
+    falta:    { bg: 'bg-red-100 border-2 border-red-500 text-red-800', emoji: '❌', label: 'FALTA' },
   }
 
-  if (loading) {
+  if (loading && alumnos.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -128,7 +130,7 @@ export default function AsistenciaDiaria() {
             <select value={grupoSeleccionado} onChange={e => setGrupoSeleccionado(e.target.value)}
               className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               {grupos.map(g => (
-                <option key={g.id} value={g.id}>{g.grado}° {g.seccion} - {g.nombre}</option>
+                <option key={g.id} value={String(g.id)}>{g.grado}° {g.seccion} - {g.nombre}</option>
               ))}
             </select>
           </div>
@@ -161,26 +163,34 @@ export default function AsistenciaDiaria() {
             💡 Toca a un alumno para cambiar su estado: <strong>Presente → Retardo → Falta</strong>
           </p>
         )}
-        <div className="space-y-2">
-          {alumnos.map(alumno => {
-            const config = estadoConfig[asistencias[alumno.id]] || estadoConfig.presente
-            return (
-              <div key={alumno.id} onClick={() => toggleAsistencia(alumno.id)}
-                className={`w-full p-4 rounded-lg font-semibold text-left transition-all ${config.bg} ${esDirector ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl">{config.emoji}</div>
-                    <div className="text-lg">{alumno.nombre} {alumno.apellidos}</div>
+
+        {alumnos.length === 0 && !loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-4xl mb-2">📭</p>
+            <p className="font-semibold">No hay alumnos en este grupo</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {alumnos.map(alumno => {
+              const config = estadoConfig[asistencias[alumno.id]] || estadoConfig.presente
+              return (
+                <div key={alumno.id} onClick={() => toggleAsistencia(alumno.id)}
+                  className={`w-full p-4 rounded-lg font-semibold text-left transition-all ${config.bg} ${esDirector ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl">{config.emoji}</div>
+                      <div className="text-lg">{alumno.nombre} {alumno.apellidos}</div>
+                    </div>
+                    <div className="text-sm font-bold">{config.label}</div>
                   </div>
-                  <div className="text-sm font-bold">{config.label}</div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {!esDirector && (
+      {!esDirector && alumnos.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 md:relative md:bg-transparent md:border-0">
           <button onClick={handleGuardar} disabled={guardando}
             className={`w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all ${guardando
