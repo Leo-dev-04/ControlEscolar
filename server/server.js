@@ -19,6 +19,9 @@ const { generalLimiter } = require('./middlewares/rateLimiter.middleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Necesario para Railway (proxy inverso) — evita error de express-rate-limit
+app.set('trust proxy', 1);
+
 // CORS configuration - restrictivo
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
