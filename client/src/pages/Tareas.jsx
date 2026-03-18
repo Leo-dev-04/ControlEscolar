@@ -15,7 +15,7 @@ export default function Tareas() {
   const [fechaEntrega, setFechaEntrega] = useState(new Date().toISOString().split('T')[0])
   const [tareasEntregadas, setTareasEntregadas] = useState({})
   const [tareasExistentes, setTareasExistentes] = useState([])
-  const [verTodas, setVerTodas] = useState(false)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
 
@@ -138,44 +138,49 @@ export default function Tareas() {
         </select>
       </div>
 
-      {/* Tareas existentes */}
+      {/* Tareas existentes - colapsado por defecto */}
       {tareasExistentes.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-lg text-gray-800">📋 Tareas registradas ({tareasExistentes.length})</h2>
-            {tareasExistentes.length > 5 && (
-              <button onClick={() => setVerTodas(prev => !prev)}
-                className="text-sm text-purple-600 hover:text-purple-800 font-semibold">
-                {verTodas ? '↑ Ver menos' : `↓ Ver todas (${tareasExistentes.length})`}
-              </button>
-            )}
-          </div>
-          <div className="space-y-2">
-            {(verTodas ? tareasExistentes : tareasExistentes.slice(0, 5)).map(t => {
-              const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
-              const fechaStr = t.fecha_entrega
-                ? (() => { try { const d = new Date(t.fecha_entrega); return isNaN(d) ? 'Sin fecha' : d.toLocaleDateString('es-MX') } catch { return 'Sin fecha' } })()
-                : 'Sin fecha'
-              return (
-                <div key={t.id} className="border border-gray-200 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-gray-800">{t.titulo}</span>
-                    <span className={`text-sm font-bold ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {t.total_entregadas || 0}/{t.total_alumnos || 0} ({pct}%)
-                    </span>
+          <button
+            onClick={() => setMostrarHistorial(prev => !prev)}
+            className="w-full flex items-center justify-between"
+          >
+            <span className="font-bold text-lg text-gray-800">📋 Tareas registradas</span>
+            <div className="flex items-center gap-2">
+              <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded-full">
+                {tareasExistentes.length} tareas
+              </span>
+              <span className="text-gray-400 text-lg">{mostrarHistorial ? '▲' : '▼'}</span>
+            </div>
+          </button>
+
+          {mostrarHistorial && (
+            <div className="mt-3 space-y-1 border-t pt-3">
+              {tareasExistentes.map(t => {
+                const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
+                const fechaStr = t.fecha_entrega
+                  ? (() => { try { const d = new Date(t.fecha_entrega + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('es-MX') } catch { return '' } })()
+                  : ''
+                return (
+                  <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-semibold text-gray-800 text-sm truncate block">{t.titulo}</span>
+                      {fechaStr && <span className="text-xs text-gray-400">Entrega: {fechaStr}</span>}
+                    </div>
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-1.5 rounded-full ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className={`text-xs font-bold w-16 text-right ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {t.total_entregadas || 0}/{t.total_alumnos || 0}
+                      </span>
+                    </div>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-2 rounded-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                      style={{ width: `${pct}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Entrega: {fechaStr}
-                    {t.descripcion && ` · ${t.descripcion}`}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
