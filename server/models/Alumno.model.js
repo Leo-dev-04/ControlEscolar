@@ -81,7 +81,8 @@ class Alumno {
         SELECT 
           a.id, a.nombre, a.apellidos, a.fecha_nacimiento,
           a.parent_email, a.parent_nombre, a.parent_telefono, a.qr_token,
-          g.id as grupo_id, g.nombre as grupo_nombre, g.grado, g.seccion as grupo
+          g.id as grupo_id, g.nombre as grupo_nombre, g.grado, g.seccion as grupo,
+          g.escuela
         FROM alumnos a
         INNER JOIN grupos g ON a.grupo_id = g.id
         WHERE a.grupo_id = ? AND a.activo = TRUE
@@ -109,7 +110,8 @@ class Alumno {
           a.*,
           g.nombre as grupo_nombre,
           g.grado,
-          g.seccion as grupo
+          g.seccion as grupo,
+          g.escuela
         FROM alumnos a
         INNER JOIN grupos g ON a.grupo_id = g.id
         WHERE a.id = ?
@@ -198,7 +200,7 @@ class Alumno {
       const total = countResult[0].total;
 
       const [rows] = await db.query(`
-        SELECT a.*, g.nombre as grupo_nombre, g.grado, g.seccion as grupo
+        SELECT a.*, g.nombre as grupo_nombre, g.grado, g.seccion as grupo, g.escuela
         FROM alumnos a
         INNER JOIN grupos g ON a.grupo_id = g.id
         WHERE a.grupo_id = ? AND a.activo = TRUE

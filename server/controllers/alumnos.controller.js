@@ -29,7 +29,8 @@ exports.getAll = async (req, res) => {
         SELECT 
           a.id, a.nombre, a.apellidos, a.fecha_nacimiento,
           a.parent_email, a.parent_nombre, a.parent_telefono, a.qr_token,
-          g.id as grupo_id, g.nombre as grupo_nombre, g.grado, g.seccion as grupo
+          g.id as grupo_id, g.nombre as grupo_nombre, g.grado, g.seccion as grupo,
+          g.escuela
         FROM alumnos a
         INNER JOIN grupos g ON a.grupo_id = g.id
         WHERE a.activo = TRUE AND g.maestro_id = ?
