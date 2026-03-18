@@ -43,23 +43,23 @@ export default function Tareas() {
     if (!grupoSeleccionado) return
     setLoading(true)
     try {
-      // Cargar alumnos
-      const response = await alumnosService.getByGrupo(grupoSeleccionado)
-      const rawData = response.data?.data || response.data || []
-      const lista = Array.isArray(rawData) ? rawData : []
+      // Cargar alumnos y tareas existentes simultáneamente
+      const [resAlumnos, resTareas] = await Promise.all([
+        alumnosService.getByGrupo(grupoSeleccionado).catch(() => ({ data: [] })),
+        tareasService.obtenerPorGrupo(grupoSeleccionado).catch(() => ({ data: [] }))
+      ])
+
+      const rawAlumnos = resAlumnos.data?.data || resAlumnos.data || []
+      const lista = Array.isArray(rawAlumnos) ? rawAlumnos : []
       setAlumnos(lista)
+      
       const iniciales = {}
       lista.forEach(a => { iniciales[a.id] = true })
       setTareasEntregadas(iniciales)
 
-      // Cargar tareas existentes
-      try {
-        const tareasResp = await tareasService.obtenerPorGrupo(grupoSeleccionado)
-        const tareasData = tareasResp.data?.data || tareasResp.data || []
-        setTareasExistentes(Array.isArray(tareasData) ? tareasData : [])
-      } catch {
-        setTareasExistentes([])
-      }
+      // Procesar tareas existentes
+      const tareasData = resTareas.data?.data || resTareas.data || []
+      setTareasExistentes(Array.isArray(tareasData) ? tareasData : [])
     } catch (error) {
       console.error('Error al cargar datos:', error)
       setAlumnos([])

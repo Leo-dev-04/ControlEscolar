@@ -39,24 +39,23 @@ export default function AsistenciaDiaria() {
     if (!grupoSeleccionado) return
     setLoading(true)
     try {
-      // Cargar alumnos primero
-      const response = await alumnosService.getByGrupo(grupoSeleccionado)
-      const rawData = response.data?.data || response.data || []
-      const lista = Array.isArray(rawData) ? rawData : []
+      // Cargar alumnos y asistencias simultáneamente
+      const [resAlumnos, resAsistencias] = await Promise.all([
+        alumnosService.getByGrupo(grupoSeleccionado).catch(() => ({ data: [] })),
+        asistenciasService.obtenerPorFecha(grupoSeleccionado, fecha).catch(() => ({ data: [] }))
+      ])
+
+      const rawAlumnos = resAlumnos.data?.data || resAlumnos.data || []
+      const lista = Array.isArray(rawAlumnos) ? rawAlumnos : []
       
       // Inicializar todos como presente
       const asistenciasIniciales = {}
       lista.forEach(a => { asistenciasIniciales[a.id] = 'presente' })
 
-      // Cargar asistencias existentes para sobreescribir
-      try {
-        const asistResponse = await asistenciasService.obtenerPorFecha(grupoSeleccionado, fecha)
-        const asistData = asistResponse.data?.data || asistResponse.data || []
-        if (Array.isArray(asistData) && asistData.length > 0) {
-          asistData.forEach(a => { asistenciasIniciales[a.alumno_id] = a.estado })
-        }
-      } catch {
-        // Si falla cargar existentes, seguimos con los valores por defecto
+      // Sobreescribir con asistencias existentes
+      const asistData = resAsistencias.data?.data || resAsistencias.data || []
+      if (Array.isArray(asistData) && asistData.length > 0) {
+        asistData.forEach(a => { asistenciasIniciales[a.alumno_id] = a.estado })
       }
 
       setAlumnos(lista)

@@ -12,6 +12,7 @@ router.get('/:id', verificarRol('director'), usuariosController.getById);
 router.post('/', verificarRol('director'), usuariosController.create);
 router.put('/:id', verificarRol('director'), usuariosController.update);
 router.delete('/:id', verificarRol('director'), usuariosController.delete);
+router.delete('/:id/permanente', verificarRol('director'), usuariosController.destroy);
 
 // Rutas de asignación de grupos
 router.put('/:id/grupos', verificarRol('director'), usuariosController.assignGroups);

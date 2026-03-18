@@ -51,6 +51,17 @@ export default function Usuarios() {
         }
     }
 
+    const handleDeletePermanent = async (usuario) => {
+        if (!confirm(`⚠️ ADVERTENCIA: ¿Estás completamente seguro de ELIMINAR PERMANENTEMENTE al usuario ${usuario.nombre}? Esta acción no se puede deshacer.`)) return
+
+        try {
+            await usuariosService.deletePermanent(usuario.id)
+            cargarUsuarios()
+        } catch (error) {
+            alert(error.response?.data?.error || 'Error al eliminar usuario permanentemente')
+        }
+    }
+
     const usuariosFiltrados = usuarios.filter(u =>
         u.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
         u.email.toLowerCase().includes(filtro.toLowerCase())
@@ -147,9 +158,17 @@ export default function Usuarios() {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(usuario)}
-                                                className="text-red-600 hover:text-red-900"
+                                                className="text-orange-500 hover:text-orange-700 mr-4"
+                                                title="Desactivar temporalmente"
                                             >
                                                 Desactivar
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePermanent(usuario)}
+                                                className="text-red-600 hover:text-red-900 font-bold"
+                                                title="Eliminar permanentemente de la base de datos"
+                                            >
+                                                Eliminar
                                             </button>
                                         </td>
                                     </tr>

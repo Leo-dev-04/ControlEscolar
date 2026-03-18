@@ -26,6 +26,11 @@ export const usuariosService = {
         return await api.delete(`/usuarios/${id}`)
     },
 
+    // Eliminar permanentemente un usuario
+    deletePermanent: async (id) => {
+        return await api.delete(`/usuarios/${id}/permanente`)
+    },
+
     // Asignar grupos
     assignGroups: async (id, gruposIds) => {
         return await api.put(`/usuarios/${id}/grupos`, { gruposIds })

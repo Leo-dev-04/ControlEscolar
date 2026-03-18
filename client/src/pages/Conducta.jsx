@@ -47,24 +47,23 @@ export default function Conducta() {
     if (!grupoSeleccionado) return
     setLoading(true)
     try {
-      // Cargar alumnos primero
-      const response = await alumnosService.getByGrupo(grupoSeleccionado)
-      const rawData = response.data?.data || response.data || []
-      const lista = Array.isArray(rawData) ? rawData : []
+      // Cargar alumnos y conductas simultáneamente
+      const [resAlumnos, resConductas] = await Promise.all([
+        alumnosService.getByGrupo(grupoSeleccionado).catch(() => ({ data: [] })),
+        conductaService.obtenerPorFecha(grupoSeleccionado, fecha).catch(() => ({ data: [] }))
+      ])
 
-      // Inicializar conductas
+      const rawAlumnos = resAlumnos.data?.data || resAlumnos.data || []
+      const lista = Array.isArray(rawAlumnos) ? rawAlumnos : []
+
+      // Inicializar conductas por defecto
       const conductaInicial = {}
       lista.forEach(a => { conductaInicial[a.id] = { color: 'verde', nota: '' } })
 
       // Cargar conductas existentes para sobreescribir
-      try {
-        const condResponse = await conductaService.obtenerPorFecha(grupoSeleccionado, fecha)
-        const condData = condResponse.data?.data || condResponse.data || []
-        if (Array.isArray(condData) && condData.length > 0) {
-          condData.forEach(c => { conductaInicial[c.alumno_id] = { color: c.color, nota: c.observaciones || '' } })
-        }
-      } catch {
-        // Si falla, seguimos con valores por defecto
+      const condData = resConductas.data?.data || resConductas.data || []
+      if (Array.isArray(condData) && condData.length > 0) {
+        condData.forEach(c => { conductaInicial[c.alumno_id] = { color: c.color, nota: c.observaciones || '' } })
       }
 
       setAlumnos(lista)
