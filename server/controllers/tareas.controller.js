@@ -89,7 +89,13 @@ const tareasController = {
 
       let query = `
         SELECT 
-          t.*,
+          t.id,
+          t.titulo,
+          t.descripcion,
+          DATE_FORMAT(t.fecha_asignacion, '%Y-%m-%d') as fecha_asignacion,
+          DATE_FORMAT(t.fecha_entrega, '%Y-%m-%d') as fecha_entrega,
+          t.grupo_id,
+          t.maestro_id,
           COUNT(et.id) as total_alumnos,
           SUM(CASE WHEN et.entregada = TRUE THEN 1 ELSE 0 END) as total_entregadas
         FROM tareas t
