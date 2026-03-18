@@ -54,6 +54,18 @@ exports.delete = async (req, res) => {
   }
 };
 
+exports.destroy = async (req, res) => {
+  try {
+    const result = await UsuarioService.eliminarPermanente(req.params.id);
+    if (!result.success) {
+      return res.status(404).json({ error: result.message });
+    }
+    res.json({ message: 'Usuario eliminado permanentemente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.assignGroups = async (req, res) => {
   try {
     const { gruposIds } = req.body;

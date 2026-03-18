@@ -255,6 +255,23 @@ class UsuarioService {
     }
 
     /**
+     * Eliminar permanentemente un usuario de la base de datos
+     */
+    static async eliminarPermanente(id) {
+        try {
+            const [result] = await db.query('DELETE FROM usuarios WHERE id = ?', [id]);
+            if (result.affectedRows === 0) {
+                return { success: false, message: 'Usuario no encontrado' };
+            }
+            logger.info(`Usuario eliminado permanentemente: ID ${id}`);
+            return { success: true };
+        } catch (error) {
+            logger.error('Error eliminando usuario permanentemente:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Asignar grupos a un maestro
      */
     static async asignarGrupos(maestroId, gruposIds) {
