@@ -138,49 +138,79 @@ export default function Tareas() {
         </select>
       </div>
 
-      {/* Tareas existentes - colapsado por defecto */}
+      {/* Botón Historial de Tareas */}
       {tareasExistentes.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-          <button
-            onClick={() => setMostrarHistorial(prev => !prev)}
-            className="w-full flex items-center justify-between"
-          >
-            <span className="font-bold text-lg text-gray-800">📋 Tareas registradas</span>
-            <div className="flex items-center gap-2">
-              <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded-full">
-                {tareasExistentes.length} tareas
-              </span>
-              <span className="text-gray-400 text-lg">{mostrarHistorial ? '▲' : '▼'}</span>
+        <button
+          onClick={() => setMostrarHistorial(true)}
+          className="w-full bg-white border-2 border-purple-100 shadow-sm rounded-lg p-4 mb-4 flex items-center justify-between text-left hover:bg-purple-50 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xl group-hover:bg-purple-200 transition-colors">
+              📋
             </div>
-          </button>
+            <div>
+              <h2 className="font-bold text-lg text-gray-800 group-hover:text-purple-700 transition-colors">Historial de Tareas</h2>
+              <p className="text-sm text-gray-500">Ver {tareasExistentes.length} tareas registradas anteriormente</p>
+            </div>
+          </div>
+          <span className="text-purple-400 group-hover:text-purple-600 font-bold px-3 py-1 bg-purple-50 rounded-full">Abrir</span>
+        </button>
+      )}
 
-          {mostrarHistorial && (
-            <div className="mt-3 space-y-1 border-t pt-3">
-              {tareasExistentes.map(t => {
+      {/* Modal de Historial */}
+      {mostrarHistorial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/80">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📋</span>
+                <h2 className="font-bold text-xl text-gray-800">Historial de Tareas</h2>
+              </div>
+              <button 
+                onClick={() => setMostrarHistorial(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1 space-y-3 bg-gray-50">
+               {tareasExistentes.map(t => {
                 const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
                 const fechaStr = t.fecha_entrega
-                  ? (() => { try { const d = new Date(t.fecha_entrega + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('es-MX') } catch { return '' } })()
+                  ? (() => { try { const d = new Date(t.fecha_entrega + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } })()
                   : ''
                 return (
-                  <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                    <div className="flex-1 min-w-0">
-                      <span className="font-semibold text-gray-800 text-sm truncate block">{t.titulo}</span>
-                      {fechaStr && <span className="text-xs text-gray-400">Entrega: {fechaStr}</span>}
-                    </div>
-                    <div className="flex items-center gap-2 ml-3 shrink-0">
-                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-1.5 rounded-full ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                          style={{ width: `${pct}%` }} />
+                  <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-gray-800 text-base md:text-lg block truncate">{t.titulo}</span>
+                        {t.descripcion && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{t.descripcion}</p>}
+                        {fechaStr && <p className="text-xs text-purple-600 font-medium mt-2">📅 Para el {fechaStr}</p>}
                       </div>
-                      <span className={`text-xs font-bold w-16 text-right ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {t.total_entregadas || 0}/{t.total_alumnos || 0}
-                      </span>
+                      <div className="flex flex-col items-end shrink-0 bg-gray-50 p-3 rounded-lg border border-gray-100 w-full md:w-auto">
+                        <span className={`text-sm font-bold mb-2 ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {t.total_entregadas || 0} / {t.total_alumnos || 0} entregaron
+                        </span>
+                        <div className="w-full md:w-32 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-2.5 rounded-full ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )
               })}
             </div>
-          )}
+            <div className="p-4 border-t border-gray-100 bg-white">
+              <button 
+                onClick={() => setMostrarHistorial(false)}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
