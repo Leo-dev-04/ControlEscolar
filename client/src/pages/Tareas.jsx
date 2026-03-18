@@ -15,6 +15,7 @@ export default function Tareas() {
   const [fechaEntrega, setFechaEntrega] = useState(new Date().toISOString().split('T')[0])
   const [tareasEntregadas, setTareasEntregadas] = useState({})
   const [tareasExistentes, setTareasExistentes] = useState([])
+  const [verTodas, setVerTodas] = useState(false)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
 
@@ -140,13 +141,24 @@ export default function Tareas() {
       {/* Tareas existentes */}
       {tareasExistentes.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
-          <h2 className="font-bold text-lg text-gray-800 mb-3">📋 Tareas registradas</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-lg text-gray-800">📋 Tareas registradas ({tareasExistentes.length})</h2>
+            {tareasExistentes.length > 5 && (
+              <button onClick={() => setVerTodas(prev => !prev)}
+                className="text-sm text-purple-600 hover:text-purple-800 font-semibold">
+                {verTodas ? '↑ Ver menos' : `↓ Ver todas (${tareasExistentes.length})`}
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
-            {tareasExistentes.map(t => {
+            {(verTodas ? tareasExistentes : tareasExistentes.slice(0, 5)).map(t => {
               const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
+              const fechaStr = t.fecha_entrega
+                ? (() => { try { const d = new Date(t.fecha_entrega); return isNaN(d) ? 'Sin fecha' : d.toLocaleDateString('es-MX') } catch { return 'Sin fecha' } })()
+                : 'Sin fecha'
               return (
-                <div key={t.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={t.id} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-gray-800">{t.titulo}</span>
                     <span className={`text-sm font-bold ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                       {t.total_entregadas || 0}/{t.total_alumnos || 0} ({pct}%)
@@ -156,8 +168,8 @@ export default function Tareas() {
                     <div className={`h-2 rounded-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
                       style={{ width: `${pct}%` }} />
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Entrega: {new Date(t.fecha_entrega + 'T12:00:00').toLocaleDateString('es-MX')}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Entrega: {fechaStr}
                     {t.descripcion && ` · ${t.descripcion}`}
                   </p>
                 </div>
