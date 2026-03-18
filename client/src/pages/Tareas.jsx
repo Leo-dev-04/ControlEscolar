@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { alumnosService } from '../services/alumnos.service'
 import { gruposService } from '../services/grupos.service'
 import { tareasService } from '../services/tareas.service'
 import { useAuth } from '../context/AuthContext'
+
+const TAREAS_POR_PAGINA = 5
 
 export default function Tareas() {
   const { usuario } = useAuth()
@@ -16,6 +18,7 @@ export default function Tareas() {
   const [tareasEntregadas, setTareasEntregadas] = useState({})
   const [tareasExistentes, setTareasExistentes] = useState([])
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
+  const [tareasVisibles, setTareasVisibles] = useState(TAREAS_POR_PAGINA)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
 
@@ -24,6 +27,21 @@ export default function Tareas() {
   useEffect(() => {
     if (grupoSeleccionado) cargarDatos()
   }, [grupoSeleccionado])
+
+  // Ordenar tareas: más recientes primero
+  const tareasOrdenadas = useMemo(() => {
+    return [...tareasExistentes].sort((a, b) => {
+      const fechaA = a.fecha_entrega || a.fecha_asignacion || ''
+      const fechaB = b.fecha_entrega || b.fecha_asignacion || ''
+      return fechaB.localeCompare(fechaA)
+    })
+  }, [tareasExistentes])
+
+  const tareasParaMostrar = useMemo(() => {
+    return tareasOrdenadas.slice(0, tareasVisibles)
+  }, [tareasOrdenadas, tareasVisibles])
+
+  const hayMasTareas = tareasOrdenadas.length > tareasVisibles
 
   const cargarGrupos = async () => {
     try {
@@ -43,8 +61,8 @@ export default function Tareas() {
   const cargarDatos = async () => {
     if (!grupoSeleccionado) return
     setLoading(true)
+    setTareasVisibles(TAREAS_POR_PAGINA)
     try {
-      // Cargar alumnos y tareas existentes simultáneamente
       const [resAlumnos, resTareas] = await Promise.all([
         alumnosService.getByGrupo(grupoSeleccionado).catch(() => ({ data: [] })),
         tareasService.obtenerPorGrupo(grupoSeleccionado).catch(() => ({ data: [] }))
@@ -58,7 +76,6 @@ export default function Tareas() {
       lista.forEach(a => { iniciales[a.id] = true })
       setTareasEntregadas(iniciales)
 
-      // Procesar tareas existentes
       const tareasData = resTareas.data?.data || resTareas.data || []
       setTareasExistentes(Array.isArray(tareasData) ? tareasData : [])
     } catch (error) {
@@ -109,6 +126,39 @@ export default function Tareas() {
     }
   }
 
+  const formatearFecha = (fecha) => {
+    if (!fecha) return ''
+    try {
+      const d = new Date(fecha + 'T12:00:00')
+      return isNaN(d) ? '' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    } catch { return '' }
+  }
+
+  const TareaCard = ({ t }) => {
+    const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
+    const fechaStr = formatearFecha(t.fecha_entrega)
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="font-bold text-gray-800 text-base md:text-lg block truncate">{t.titulo}</span>
+            {t.descripcion && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{t.descripcion}</p>}
+            {fechaStr && <p className="text-xs text-purple-600 font-medium mt-2">📅 Para el {fechaStr}</p>}
+          </div>
+          <div className="flex flex-col items-end shrink-0 bg-gray-50 p-3 rounded-lg border border-gray-100 w-full md:w-auto">
+            <span className={`text-sm font-bold mb-2 ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+              {t.total_entregadas || 0} / {t.total_alumnos || 0} entregaron
+            </span>
+            <div className="w-full md:w-32 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className={`h-2.5 rounded-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (loading && alumnos.length === 0 && tareasExistentes.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -127,7 +177,7 @@ export default function Tareas() {
         </div>
       )}
 
-      {/* Selector de grupo (siempre visible) */}
+      {/* Selector de grupo */}
       <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
         <label className="block text-sm font-semibold text-gray-700 mb-2">Grupo</label>
         <select value={grupoSeleccionado} onChange={e => setGrupoSeleccionado(e.target.value)}
@@ -138,79 +188,53 @@ export default function Tareas() {
         </select>
       </div>
 
-      {/* Botón Historial de Tareas */}
+      {/* Historial compacto: últimas 5 tareas inline */}
       {tareasExistentes.length > 0 && (
-        <button
-          onClick={() => setMostrarHistorial(true)}
-          className="w-full bg-white border-2 border-purple-100 shadow-sm rounded-lg p-4 mb-4 flex items-center justify-between text-left hover:bg-purple-50 transition-colors group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xl group-hover:bg-purple-200 transition-colors">
-              📋
-            </div>
-            <div>
-              <h2 className="font-bold text-lg text-gray-800 group-hover:text-purple-700 transition-colors">Historial de Tareas</h2>
-              <p className="text-sm text-gray-500">Ver {tareasExistentes.length} tareas registradas anteriormente</p>
-            </div>
-          </div>
-          <span className="text-purple-400 group-hover:text-purple-600 font-bold px-3 py-1 bg-purple-50 rounded-full">Abrir</span>
-        </button>
-      )}
-
-      {/* Modal de Historial */}
-      {mostrarHistorial && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/80">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📋</span>
-                <h2 className="font-bold text-xl text-gray-800">Historial de Tareas</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
+          <button
+            onClick={() => setMostrarHistorial(prev => !prev)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-lg font-bold">
+                📋
               </div>
-              <button 
-                onClick={() => setMostrarHistorial(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors"
-                title="Cerrar"
-              >
-                ✕
-              </button>
+              <div className="text-left">
+                <p className="font-bold text-gray-800 text-sm leading-tight">Historial de Tareas</p>
+                <p className="text-xs text-gray-400 mt-0.5">{tareasExistentes.length} tarea{tareasExistentes.length !== 1 ? 's' : ''} registrada{tareasExistentes.length !== 1 ? 's' : ''}</p>
+              </div>
             </div>
-            <div className="p-5 overflow-y-auto flex-1 space-y-3 bg-gray-50">
-               {tareasExistentes.map(t => {
-                const pct = t.total_alumnos > 0 ? Math.round((t.total_entregadas / t.total_alumnos) * 100) : 0
-                const fechaStr = t.fecha_entrega
-                  ? (() => { try { const d = new Date(t.fecha_entrega + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '' } })()
-                  : ''
-                return (
-                  <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold text-gray-800 text-base md:text-lg block truncate">{t.titulo}</span>
-                        {t.descripcion && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{t.descripcion}</p>}
-                        {fechaStr && <p className="text-xs text-purple-600 font-medium mt-2">📅 Para el {fechaStr}</p>}
-                      </div>
-                      <div className="flex flex-col items-end shrink-0 bg-gray-50 p-3 rounded-lg border border-gray-100 w-full md:w-auto">
-                        <span className={`text-sm font-bold mb-2 ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {t.total_entregadas || 0} / {t.total_alumnos || 0} entregaron
-                        </span>
-                        <div className="w-full md:w-32 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div className={`h-2.5 rounded-full ${pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                            style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+            <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${mostrarHistorial ? 'rotate-0' : '-rotate-90'}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {mostrarHistorial && (
+            <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50">
+              {tareasParaMostrar.map(t => (
+                <TareaCard key={t.id} t={t} />
+              ))}
+
+              {hayMasTareas && (
+                <button
+                  onClick={() => setTareasVisibles(prev => prev + TAREAS_POR_PAGINA)}
+                  className="w-full py-3 text-sm font-semibold text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                  Ver más tareas ({tareasOrdenadas.length - tareasVisibles} restantes)
+                </button>
+              )}
+
+              {!hayMasTareas && tareasOrdenadas.length > TAREAS_POR_PAGINA && (
+                <button
+                  onClick={() => setTareasVisibles(TAREAS_POR_PAGINA)}
+                  className="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Mostrar menos
+                </button>
+              )}
             </div>
-            <div className="p-4 border-t border-gray-100 bg-white">
-              <button 
-                onClick={() => setMostrarHistorial(false)}
-                className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
